@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup Label="Project">
+    <TargetFramework>net9.0</TargetFramework>
+    <OutputType>WinExe</OutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Sdf\Sdf.csproj" />
+    <PackageReference Include="ppy.osu.Framework" Version="2025.1008.0" />
+  </ItemGroup>
+</Project>

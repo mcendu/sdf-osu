@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="FreeTypeSharp" Version="3.0.1" />
+    <PackageReference Include="ppy.osu.Framework" Version="2025.1008.0" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.11" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Sdf.Resources\Sdf.Resources.csproj" />
+  </ItemGroup>
+</Project>
