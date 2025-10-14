@@ -256,17 +256,28 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
 
                 ftStream = (FT_StreamRec_*)stream;
             }
+        }
+        catch (Exception e)
+        {
+            Logger.Error(e, $"Couldn't load font asset from {AssetName}.");
+
+            s?.Dispose();
+            handle.Free();
+            completionSource.SetResult(0);
+            throw;
+        }
 
 
-            var openArgs = new FT_Open_Args_
-            {
-                flags = 0x2, // FT_OPEN_STREAM
-                stream = ftStream,
-                num_params = 0,
-            };
+        var openArgs = new FT_Open_Args_
+        {
+            flags = 0x2, // FT_OPEN_STREAM
+            stream = ftStream,
+            num_params = 0,
+        };
 
-            nint compoundFaceIndex = (ushort)faceIndex | (namedInstance << 16);
+        nint compoundFaceIndex = (ushort)faceIndex | (namedInstance << 16);
 
+        try {
             FT_Error error;
 
             lock (freeTypeLock)
@@ -291,20 +302,14 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
         {
             Logger.Error(e, $"Couldn't load font asset from {AssetName}.");
 
-            // Clean up unmanaged resources allocated up until now.
+            // At this point FreeType owns all unmanaged resources allocated above, and
+            // FT_Done_Face should release them all.
             if (face is not null)
             {
                 lock (freeTypeLock)
                 {
-                    // This disposes `face` and all resources passed to it.
                     FT_Done_Face(face);
                 }
-            }
-            else
-            {
-                s?.Dispose();
-                handle.Free();
-                NativeMemory.Free(ftStream);
             }
 
             completionSource.SetResult(0);
@@ -578,11 +583,6 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
     /// </summary>
     private class FreeTypeException : Exception
     {
-        /// <summary>
-        /// The raw error code returned by FreeType.
-        /// </summary>
-        public FT_Error ErrorCode { get; init; }
-
         public static string ErrorMessage(FT_Error error)
         {
             unsafe
@@ -595,7 +595,7 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
         public FreeTypeException(FT_Error error)
             : base(ErrorMessage(error))
         {
-            ErrorCode = error;
+            HResult = (int)error;
         }
     }
 
