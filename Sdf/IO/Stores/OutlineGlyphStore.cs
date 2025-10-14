@@ -352,7 +352,7 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
 
         lock (faceLock)
         {
-            error = FT_Load_Glyph(Face, glyphIndex, FT_LOAD_NO_HINTING);
+            error = FT_Load_Glyph(Face, glyphIndex, FT_LOAD_NO_BITMAP | FT_LOAD_NO_HINTING);
             horiBearingX = Face->glyph->metrics.horiBearingX;
             horiBearingY = Face->glyph->metrics.horiBearingY;
             horiAdvance = Face->glyph->metrics.horiAdvance;
@@ -508,7 +508,7 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
         // rasterize
         lock (faceLock)
         {
-            error = FT_Load_Glyph(face, glyphIndex, FT_LOAD_NO_HINTING | FT_LOAD_RENDER);
+            error = FT_Load_Glyph(face, glyphIndex, FT_LOAD_NO_BITMAP | FT_LOAD_NO_HINTING | FT_LOAD_RENDER);
 
             if (error != 0) throw new FreeTypeException(error);
 
