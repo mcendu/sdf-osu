@@ -26,6 +26,10 @@ using osu.Framework.Graphics.Sprites;
 
 namespace Sdf.Graphics;
 
+/// <summary>
+/// A variant of <see cref="SpriteText"/> that renders using signed distance
+/// fields instead of regular rasterized glyphs. 
+/// </summary>
 public partial class SdfSpriteText : SpriteText
 {
     [BackgroundDependencyLoader]
