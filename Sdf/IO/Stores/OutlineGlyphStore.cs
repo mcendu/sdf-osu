@@ -50,6 +50,8 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
     /// <seealso href="https://freetype.org/freetype2/docs/reference/ft2-properties.html#spread"/>
     private const int SDF_SPREAD = 8;
 
+    private const float BASELINE = 85.0f;
+
     private static readonly unsafe FT_LibraryRec_* freeType;
 
     private static readonly Lock freeTypeLock = new Lock();
@@ -86,10 +88,7 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
 
     public string FontName => fontName;
 
-    private float? baseline = null;
-
-    public float? Baseline => baseline;
-
+    public float? Baseline => BASELINE;
     /// <summary>
     /// Initializes FreeType for loading outline fonts.
     /// </summary>
@@ -294,7 +293,6 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
 
             // get font name and calculate baseline
             fontName = Marshal.PtrToStringUTF8((nint)FT_Get_Postscript_Name(face))!;
-            baseline = (float)(Resolution * (double)face->bbox.yMax / (face->bbox.yMax - face->bbox.yMin));
 
             completionSource.SetResult((nint)face);
         }
@@ -370,9 +368,8 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
 
         // FreeType outputs metric data in 26.6 fixed point. Convert to floating point accordingly.
         FT_Glyph_Metrics_* ftMetrics = &Face->glyph->metrics;
-        float baseline = Baseline ?? 0.0f;
         float xOffset = (horiBearingX / 64.0f) - SDF_SPREAD;
-        float yOffset = baseline - (horiBearingY / 64.0f) - SDF_SPREAD;
+        float yOffset = BASELINE - (horiBearingY / 64.0f) - SDF_SPREAD;
         float advance = horiAdvance / 64.0f;
 
         return new OutlineGlyph
