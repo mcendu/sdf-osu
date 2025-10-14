@@ -111,8 +111,9 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
 
         Store.AddExtension("ttf");
         Store.AddExtension("otf");
+        Store.AddExtension("woff");
+        Store.AddExtension("woff2");
         Store.AddExtension("ttc");
-        Store.AddExtension("otc");
 
         AssetName = assetName;
         this.faceIndex = faceIndex;
@@ -219,92 +220,94 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
 
     private unsafe void LoadFont()
     {
-        Stream? s = Store.GetStream(AssetName);
-
-        if (s is null)
-        {
-            // Throw early before complications arise from unmanaged code.
-            throw new NullReferenceException();
-        }
-
-        var handle = GCHandle.Alloc(s);
-        FT_FaceRec_* face = null;
-        FT_StreamRec_* ftStream = null;
-
-        // open the font
         try
         {
-            // HACK: work around bugs in bindings and ABI differences.
-            if (OperatingSystem.IsWindows() && RuntimeInformation.ProcessArchitecture == Architecture.X64)
-            {
-                var stream = (FTStreamWindows*)NativeMemory.AllocZeroed((nuint)sizeof(FTStreamWindows));
-                stream->size = 0x7FFFFFFF;
-                stream->descriptor = (nint)handle;
-                stream->read = &ReadFromFreeType;
-                stream->close = &CloseFromFreeType;
+            Stream? s = Store.GetStream(AssetName);
 
-                ftStream = (FT_StreamRec_*)stream;
-            }
-            else
+            if (s is null)
             {
-                var stream = (FTStream*)NativeMemory.AllocZeroed((nuint)sizeof(FTStream));
-                stream->size = 0x7FFFFFFF;
-                stream->descriptor = (nint)handle;
-                stream->read = &ReadFromFreeType;
-                stream->close = &CloseFromFreeType;
-
-                ftStream = (FT_StreamRec_*)stream;
+                // Throw early before complications arise from unmanaged code.
+                throw new NullReferenceException();
             }
-        }
+
+            var handle = GCHandle.Alloc(s);
+            FT_FaceRec_* face = null;
+            FT_StreamRec_* ftStream = null;
+
+            // open the font
+            try
+            {
+                // HACK: work around bugs in bindings and ABI differences.
+                if (OperatingSystem.IsWindows() && RuntimeInformation.ProcessArchitecture == Architecture.X64)
+                {
+                    var stream = (FTStreamWindows*)NativeMemory.AllocZeroed((nuint)sizeof(FTStreamWindows));
+                    stream->size = 0x7FFFFFFF;
+                    stream->descriptor = (nint)handle;
+                    stream->read = &ReadFromFreeType;
+                    stream->close = &CloseFromFreeType;
+
+                    ftStream = (FT_StreamRec_*)stream;
+                }
+                else
+                {
+                    var stream = (FTStream*)NativeMemory.AllocZeroed((nuint)sizeof(FTStream));
+                    stream->size = 0x7FFFFFFF;
+                    stream->descriptor = (nint)handle;
+                    stream->read = &ReadFromFreeType;
+                    stream->close = &CloseFromFreeType;
+
+                    ftStream = (FT_StreamRec_*)stream;
+                }
+            }
             catch (Exception)
-        {
-            s?.Dispose();
-            handle.Free();
-            throw;
-        }
+            {
+                s?.Dispose();
+                handle.Free();
+                throw;
+            }
 
 
-        var openArgs = new FT_Open_Args_
-        {
-            flags = 0x2, // FT_OPEN_STREAM
-            stream = ftStream,
-            num_params = 0,
-        };
+            var openArgs = new FT_Open_Args_
+            {
+                flags = 0x2, // FT_OPEN_STREAM
+                stream = ftStream,
+                num_params = 0,
+            };
 
-        nint compoundFaceIndex = (ushort)faceIndex | (namedInstance << 16);
+            nint compoundFaceIndex = (ushort)faceIndex | (namedInstance << 16);
 
             try
             {
-            FT_Error error;
+                FT_Error error;
 
-            lock (freeTypeLock)
-            {
-                error = FT_Open_Face(freeType, &openArgs, compoundFaceIndex, &face);
-            }
-
-            if (error != 0) throw new FreeTypeException(error);
-
-            // set pixel size
-            error = FT_Set_Pixel_Sizes(face, 0, Resolution);
-
-            if (error != 0) throw new FreeTypeException(error);
-
-            // get font name and calculate baseline
-            fontName = Marshal.PtrToStringUTF8((nint)FT_Get_Postscript_Name(face))!;
-
-            completionSource.SetResult((nint)face);
-        }
-            catch (Exception)
-        {
-            // At this point FreeType owns all unmanaged resources allocated above, and
-            // FT_Done_Face should release them all.
-            if (face is not null)
-            {
                 lock (freeTypeLock)
                 {
-                    FT_Done_Face(face);
+                    error = FT_Open_Face(freeType, &openArgs, compoundFaceIndex, &face);
                 }
+
+                if (error != 0) throw new FreeTypeException(error);
+
+                // set pixel size
+                error = FT_Set_Pixel_Sizes(face, 0, Resolution);
+
+                if (error != 0) throw new FreeTypeException(error);
+
+                // get font name and calculate baseline
+                fontName = Marshal.PtrToStringUTF8((nint)FT_Get_Postscript_Name(face))!;
+
+                completionSource.SetResult((nint)face);
             }
+            catch (Exception)
+            {
+                // At this point FreeType owns all unmanaged resources allocated above, and
+                // FT_Done_Face should release them all.
+                if (face is not null)
+                {
+                    lock (freeTypeLock)
+                    {
+                        FT_Done_Face(face);
+                    }
+                }
 
                 throw;
             }
