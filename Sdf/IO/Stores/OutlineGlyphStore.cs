@@ -50,12 +50,36 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
     /// <seealso href="https://freetype.org/freetype2/docs/reference/ft2-properties.html#spread"/>
     private const int SDF_SPREAD = 8;
 
+    /// <summary>
+    /// The hardcoded baseline value for mapping FreeType metrics into BMFont metrics.
+    /// </summary>
     private const float BASELINE = 85.0f;
 
+    /// <summary>
+    /// An instance of the FreeType library.
+    /// </summary>
     private static readonly unsafe FT_LibraryRec_* freeType;
 
+    /// <summary>
+    /// Locks <see cref="freeType"/> for opening and closing fonts.
+    /// </summary>
     private static readonly Lock freeTypeLock = new Lock();
 
+    /// <summary>
+    /// The underlying unmanaged font handle.
+    /// </summary>
+    private unsafe FT_FaceRec_* Face => (FT_FaceRec_*)completionSource.Task.GetResultSafely();
+
+    /// <summary>
+    /// Locks <see cref="Face"/> and its glyph slot for exclusive access. 
+    /// </summary>
+    private readonly Lock faceLock = new Lock();
+
+    private readonly TaskCompletionSource<nint> completionSource = new TaskCompletionSource<nint>();
+
+    /// <summary>
+    /// Cache for glyph metrics and textures.
+    /// </summary>
     private readonly ConcurrentDictionary<uint, OutlineGlyph> glyphCache = new();
 
     protected readonly string? AssetName;
@@ -78,21 +102,14 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
 
     protected readonly ResourceStore<byte[]> Store;
 
-    private unsafe FT_FaceRec_* Face => (FT_FaceRec_*)completionSource.Task.GetResultSafely();
-
-    private readonly Lock faceLock = new Lock();
-
-    private readonly TaskCompletionSource<nint> completionSource = new TaskCompletionSource<nint>();
-
-    private string fontName = null!;
-
-    public string FontName => fontName;
+    public string FontName { get; private set; }
 
     public float? Baseline => BASELINE;
+
     /// <summary>
     /// Initializes FreeType for loading outline fonts.
     /// </summary>
-    /// <exception cref="FreeTypeException"></exception>
+    /// <exception cref="FreeTypeException">FreeType failed to initialize.</exception>
     static unsafe OutlineGlyphStore()
     {
         FT_Error error;
@@ -119,6 +136,7 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
         this.faceIndex = faceIndex;
         this.namedInstance = namedInstance;
 
+        FontName = null!;
         LoadFont();
     }
 
@@ -145,10 +163,110 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
     }
 
     /// <summary>
+    /// Opens the underlying font for processing.
+    /// </summary>
+    /// <exception cref="FileNotFoundException">The requested font does not exist.</exception>
+    /// <exception cref="FreeTypeException">FreeType refused to open the font.</exception>
+    private unsafe void LoadFont()
+    {
+        try
+        {
+            Stream? s = Store.GetStream(AssetName) ?? throw new FileNotFoundException();
+            var handle = GCHandle.Alloc(s);
+            FT_FaceRec_* face = null;
+            FT_StreamRec_* ftStream = null;
+
+            // open the font
+            try
+            {
+                // HACK: work around bugs in bindings and ABI differences.
+                if (OperatingSystem.IsWindows() && RuntimeInformation.ProcessArchitecture == Architecture.X64)
+                {
+                    var stream = (FTStreamWindows*)NativeMemory.AllocZeroed((nuint)sizeof(FTStreamWindows));
+                    stream->size = 0x7FFFFFFF;
+                    stream->descriptor = (nint)handle;
+                    stream->read = &StreamReadCallback;
+                    stream->close = &StreamCloseCallback;
+
+                    ftStream = (FT_StreamRec_*)stream;
+                }
+                else
+                {
+                    var stream = (FTStream*)NativeMemory.AllocZeroed((nuint)sizeof(FTStream));
+                    stream->size = 0x7FFFFFFF;
+                    stream->descriptor = (nint)handle;
+                    stream->read = &StreamReadCallback;
+                    stream->close = &StreamCloseCallback;
+
+                    ftStream = (FT_StreamRec_*)stream;
+                }
+            }
+            catch (Exception)
+            {
+                s?.Dispose();
+                handle.Free();
+                throw;
+            }
+
+
+            var openArgs = new FT_Open_Args_
+            {
+                flags = 0x2, // FT_OPEN_STREAM
+                stream = ftStream,
+                num_params = 0,
+            };
+
+            nint compoundFaceIndex = (ushort)faceIndex | (namedInstance << 16);
+
+            try
+            {
+                FT_Error error;
+
+                lock (freeTypeLock)
+                {
+                    error = FT_Open_Face(freeType, &openArgs, compoundFaceIndex, &face);
+                }
+
+                if (error != 0) throw new FreeTypeException(error);
+
+                // set pixel size
+                error = FT_Set_Pixel_Sizes(face, 0, Resolution);
+
+                if (error != 0) throw new FreeTypeException(error);
+
+                // get font name
+                FontName = Marshal.PtrToStringUTF8((nint)FT_Get_Postscript_Name(face)) ?? FontName;
+
+                completionSource.SetResult((nint)face);
+            }
+            catch (Exception)
+            {
+                // At this point FreeType owns all unmanaged resources allocated above, and
+                // FT_Done_Face should release them all.
+                if (face is not null)
+                {
+                    lock (freeTypeLock)
+                    {
+                        FT_Done_Face(face);
+                    }
+                }
+
+                throw;
+            }
+        }
+        catch (Exception e)
+        {
+            Logger.Error(e, $"Couldn't load font asset from {AssetName}.");
+            completionSource.SetResult(0);
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Stream read and seek callback used by FreeType.
     /// </summary>
     [UnmanagedCallersOnly]
-    private static unsafe nuint ReadFromFreeType(FT_StreamRec_* ftStream, nuint offset, byte* buffer, nuint count)
+    private static unsafe nuint StreamReadCallback(FT_StreamRec_* ftStream, nuint offset, byte* buffer, nuint count)
     {
         try
         {
@@ -193,7 +311,7 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
     /// Stream close callback used by FreeType.
     /// </summary>
     [UnmanagedCallersOnly]
-    private static unsafe void CloseFromFreeType(FT_StreamRec_* ftStream)
+    private static unsafe void StreamCloseCallback(FT_StreamRec_* ftStream)
     {
         GCHandle handle;
 
@@ -216,108 +334,6 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
 
         // FreeType allows a `FT_Stream *` to free itself here.
         NativeMemory.Free(ftStream);
-    }
-
-    private unsafe void LoadFont()
-    {
-        try
-        {
-            Stream? s = Store.GetStream(AssetName);
-
-            if (s is null)
-            {
-                // Throw early before complications arise from unmanaged code.
-                throw new NullReferenceException();
-            }
-
-            var handle = GCHandle.Alloc(s);
-            FT_FaceRec_* face = null;
-            FT_StreamRec_* ftStream = null;
-
-            // open the font
-            try
-            {
-                // HACK: work around bugs in bindings and ABI differences.
-                if (OperatingSystem.IsWindows() && RuntimeInformation.ProcessArchitecture == Architecture.X64)
-                {
-                    var stream = (FTStreamWindows*)NativeMemory.AllocZeroed((nuint)sizeof(FTStreamWindows));
-                    stream->size = 0x7FFFFFFF;
-                    stream->descriptor = (nint)handle;
-                    stream->read = &ReadFromFreeType;
-                    stream->close = &CloseFromFreeType;
-
-                    ftStream = (FT_StreamRec_*)stream;
-                }
-                else
-                {
-                    var stream = (FTStream*)NativeMemory.AllocZeroed((nuint)sizeof(FTStream));
-                    stream->size = 0x7FFFFFFF;
-                    stream->descriptor = (nint)handle;
-                    stream->read = &ReadFromFreeType;
-                    stream->close = &CloseFromFreeType;
-
-                    ftStream = (FT_StreamRec_*)stream;
-                }
-            }
-            catch (Exception)
-            {
-                s?.Dispose();
-                handle.Free();
-                throw;
-            }
-
-
-            var openArgs = new FT_Open_Args_
-            {
-                flags = 0x2, // FT_OPEN_STREAM
-                stream = ftStream,
-                num_params = 0,
-            };
-
-            nint compoundFaceIndex = (ushort)faceIndex | (namedInstance << 16);
-
-            try
-            {
-                FT_Error error;
-
-                lock (freeTypeLock)
-                {
-                    error = FT_Open_Face(freeType, &openArgs, compoundFaceIndex, &face);
-                }
-
-                if (error != 0) throw new FreeTypeException(error);
-
-                // set pixel size
-                error = FT_Set_Pixel_Sizes(face, 0, Resolution);
-
-                if (error != 0) throw new FreeTypeException(error);
-
-                // get font name and calculate baseline
-                fontName = Marshal.PtrToStringUTF8((nint)FT_Get_Postscript_Name(face))!;
-
-                completionSource.SetResult((nint)face);
-            }
-            catch (Exception)
-            {
-                // At this point FreeType owns all unmanaged resources allocated above, and
-                // FT_Done_Face should release them all.
-                if (face is not null)
-                {
-                    lock (freeTypeLock)
-                    {
-                        FT_Done_Face(face);
-                    }
-                }
-
-                throw;
-            }
-        }
-        catch (Exception e)
-        {
-            Logger.Error(e, $"Couldn't load font asset from {AssetName}.");
-            completionSource.SetResult(0);
-            throw;
-        }
     }
 
     public Task LoadFontAsync() => Task.CompletedTask;
@@ -493,14 +509,6 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
     /// <param name="codePoint">The code point to render.</param>
     private unsafe TextureUpload GetGlyphTexture(nint face, uint codePoint) => GetGlyphTexture((FT_FaceRec_*)face, codePoint);
 
-    private static readonly FT_Matrix_ bitmapMatrix = new FT_Matrix_
-    {
-        xx = 0x00040000,
-        xy = 0x00000000,
-        yx = 0x00000000,
-        yy = 0x00040000,
-    };
-
     /// <summary>
     /// Rasterize a glyph.
     /// </summary>
@@ -577,27 +585,6 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
             uint glyphIndex;
             uint codePoint = (uint)FT_Get_Next_Char(Face, prevCodePoint, &glyphIndex);
             return (codePoint, glyphIndex);
-        }
-    }
-
-    /// <summary>
-    /// The exception that encapsulates errors returned by FreeType.
-    /// </summary>
-    private class FreeTypeException : Exception
-    {
-        public static string ErrorMessage(FT_Error error)
-        {
-            unsafe
-            {
-                string? message = Marshal.PtrToStringUTF8((nint)FT_Error_String(error));
-                return $"{message}." ?? "An error occured while calling FreeType.";
-            }
-        }
-
-        public FreeTypeException(FT_Error error)
-            : base(ErrorMessage(error))
-        {
-            HResult = (int)error;
         }
     }
 
