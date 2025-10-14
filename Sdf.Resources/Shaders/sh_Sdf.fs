@@ -42,7 +42,7 @@ void main(void)
 
     float filterX = dFdx(v_TexCoord).s * float(textureResolution.x) * filterSizeScale;
 
-    // add 0.5 * filterX to make things legilible at smaller sizes
+    // add 0.5 * filterX to make things legible at smaller sizes
     float coverage = (dist - 0.5 + 0.5 * filterX) / abs(filterX);
 
     o_Colour = vec4(v_Colour.rgb, clamp(coverage, 0.0, 1.0));
