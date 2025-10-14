@@ -50,15 +50,22 @@ namespace Sdf
             Resources.AddStore(new DllResourceStore(typeof(SdfResources).Assembly));
 
             Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2-VariableFont_wght", namedInstance: 4));
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/NotoSansCJK-VF", faceIndex: 2, namedInstance: 4));
 
-            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2-VariableFont_wght", namedInstance: 1));
             Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2-VariableFont_wght", namedInstance: 2));
             Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2-VariableFont_wght", namedInstance: 3));
             Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2-VariableFont_wght", namedInstance: 5));
             Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2-VariableFont_wght", namedInstance: 6));
             Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2-VariableFont_wght", namedInstance: 7));
-            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2-VariableFont_wght", namedInstance: 8));
             Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2-VariableFont_wght", namedInstance: 9));
+
+
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/NotoSansCJK-VF", faceIndex: 2, namedInstance: 1));
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/NotoSansCJK-VF", faceIndex: 2, namedInstance: 2));
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/NotoSansCJK-VF", faceIndex: 2, namedInstance: 3));
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/NotoSansCJK-VF", faceIndex: 2, namedInstance: 5));
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/NotoSansCJK-VF", faceIndex: 2, namedInstance: 6));
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/NotoSansCJK-VF", faceIndex: 2, namedInstance: 7));
         }
     }
 }

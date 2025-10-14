@@ -33,6 +33,8 @@ namespace Sdf
 {
     public partial class MainScreen : Screen
     {
+        private const string TEST_STRING = "我是嘉然小姐的狗 ABCD 1234";
+
         [BackgroundDependencyLoader]
         private void load()
         {
@@ -47,92 +49,68 @@ namespace Sdf
                 {
                     RelativeSizeAxes = Axes.Both,
                     Direction = FillDirection.Vertical,
+                    Padding = new()
+                    {
+                        Vertical = 10,
+                    },
                     Spacing = new Vector2(0, 10),
                     Children = new []
                     {
                         new SdfSpriteText
                         {
-                            Text = "TrueType font test",
+                            Text = TEST_STRING,
                             Anchor = Anchor.TopCentre,
                             Origin = Anchor.TopCentre,
                             Font = FontUsage.Default.With(size: 40, weight: "Thin"),
                         },
                         new SdfSpriteText
                         {
-                            Text = "TrueType font test",
-                            Anchor = Anchor.TopCentre,
-                            Origin = Anchor.TopCentre,
-                            Font = FontUsage.Default.With(size: 40, weight: "ExtraLight"),
-                        },
-                        new SdfSpriteText
-                        {
-                            Text = "TrueType font test",
+                            Text = TEST_STRING,
                             Anchor = Anchor.TopCentre,
                             Origin = Anchor.TopCentre,
                             Font = FontUsage.Default.With(size: 40, weight: "Light"),
                         },
                         new SdfSpriteText
                         {
-                            Text = "TrueType font test",
+                            Text = TEST_STRING,
                             Anchor = Anchor.TopCentre,
                             Origin = Anchor.TopCentre,
                             Font = FontUsage.Default.With(size: 40, weight: "Regular"),
                         },
                         new SdfSpriteText
                         {
-                            Text = "TrueType font test",
+                            Text = TEST_STRING,
                             Anchor = Anchor.TopCentre,
                             Origin = Anchor.TopCentre,
                             Font = FontUsage.Default.With(size: 40, weight: "Medium"),
                         },
                         new SdfSpriteText
                         {
-                            Text = "TrueType font test",
-                            Anchor = Anchor.TopCentre,
-                            Origin = Anchor.TopCentre,
-                            Font = FontUsage.Default.With(size: 40, weight: "SemiBold"),
-                        },
-                        new SdfSpriteText
-                        {
-                            Text = "TrueType font test",
+                            Text = TEST_STRING,
                             Anchor = Anchor.TopCentre,
                             Origin = Anchor.TopCentre,
                             Font = FontUsage.Default.With(size: 40, weight: "Bold"),
                         },
                         new SdfSpriteText
                         {
-                            Text = "TrueType font test",
-                            Anchor = Anchor.TopCentre,
-                            Origin = Anchor.TopCentre,
-                            Font = FontUsage.Default.With(size: 40, weight: "ExtraBold"),
-                        },
-                        new SdfSpriteText
-                        {
-                            Text = "TrueType font test",
+                            Text = TEST_STRING,
                             Anchor = Anchor.TopCentre,
                             Origin = Anchor.TopCentre,
                             Font = FontUsage.Default.With(size: 40, weight: "Black"),
                         },
                         new SdfSpriteText
                         {
-                            Text = "TrueType font test",
+                            Text = TEST_STRING,
                             Anchor = Anchor.TopCentre,
                             Origin = Anchor.TopCentre,
                             Font = FontUsage.Default.With(size: 16, weight: "Regular"),
                         },
                         new SdfSpriteText
                         {
-                            Text = "TrueType font test",
+                            Text = TEST_STRING,
                             Anchor = Anchor.TopCentre,
                             Origin = Anchor.TopCentre,
                             Font = FontUsage.Default.With(size: 16, weight: "Bold"),
-                        },
-                        new SpriteText
-                        {
-                            Text = "TrueType font test",
-                            Anchor = Anchor.TopCentre,
-                            Origin = Anchor.TopCentre,
-                            Font = FontUsage.Default.With(size: 100, weight: "Regular"),
                         },
                     }
                 },
