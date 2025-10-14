@@ -256,13 +256,10 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
                 ftStream = (FT_StreamRec_*)stream;
             }
         }
-        catch (Exception e)
+            catch (Exception)
         {
-            Logger.Error(e, $"Couldn't load font asset from {AssetName}.");
-
             s?.Dispose();
             handle.Free();
-            completionSource.SetResult(0);
             throw;
         }
 
@@ -276,7 +273,8 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
 
         nint compoundFaceIndex = (ushort)faceIndex | (namedInstance << 16);
 
-        try {
+            try
+            {
             FT_Error error;
 
             lock (freeTypeLock)
@@ -296,10 +294,8 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
 
             completionSource.SetResult((nint)face);
         }
-        catch (Exception e)
+            catch (Exception)
         {
-            Logger.Error(e, $"Couldn't load font asset from {AssetName}.");
-
             // At this point FreeType owns all unmanaged resources allocated above, and
             // FT_Done_Face should release them all.
             if (face is not null)
@@ -310,6 +306,12 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
                 }
             }
 
+                throw;
+            }
+        }
+        catch (Exception e)
+        {
+            Logger.Error(e, $"Couldn't load font asset from {AssetName}.");
             completionSource.SetResult(0);
             throw;
         }
