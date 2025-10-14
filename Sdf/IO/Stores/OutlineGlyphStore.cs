@@ -136,8 +136,8 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
         this.faceIndex = faceIndex;
         this.namedInstance = namedInstance;
 
-        FontName = null!;
-        LoadFont();
+        // Assign tentative resource name before a proper PostScript name is available.
+        FontName = assetName?.Split('/').Last() ?? string.Empty;
     }
 
     ~OutlineGlyphStore()
@@ -336,7 +336,7 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
         NativeMemory.Free(ftStream);
     }
 
-    public Task LoadFontAsync() => Task.CompletedTask;
+    public Task LoadFontAsync() => Task.Run(LoadFont);
 
     /// <summary>
     /// Whether a glyph exists for the specified character in this store.
