@@ -45,5 +45,5 @@ void main(void)
     // add 0.5 * filterX to make things legible at smaller sizes
     float coverage = (dist - 0.5 + 0.5 * filterX) / abs(filterX);
 
-    o_Colour = vec4(v_Colour.rgb, clamp(coverage, 0.0, 1.0));
+    o_Colour = v_Colour * vec4(vec3(1.0), clamp(coverage, 0.0, 1.0));
 }

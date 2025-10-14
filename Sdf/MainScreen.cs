@@ -33,7 +33,7 @@ namespace Sdf
 {
     public partial class MainScreen : Screen
     {
-        private const string TEST_STRING = "我是嘉然小姐的狗 ABCD 1234";
+        private const string TEST_STRING = "说的道理 ABCD 1234";
 
         [BackgroundDependencyLoader]
         private void load()
@@ -97,6 +97,22 @@ namespace Sdf
                             Anchor = Anchor.TopCentre,
                             Origin = Anchor.TopCentre,
                             Font = FontUsage.Default.With(size: 40, weight: "Black"),
+                        },
+                        new SdfSpriteText
+                        {
+                            Text = TEST_STRING,
+                            Anchor = Anchor.TopCentre,
+                            Origin = Anchor.TopCentre,
+                            Colour = Colour4.Black,
+                            Font = FontUsage.Default.With(size: 40, weight: "Regular"),
+                        },
+                        new SdfSpriteText
+                        {
+                            Text = TEST_STRING,
+                            Anchor = Anchor.TopCentre,
+                            Origin = Anchor.TopCentre,
+                            Colour = Colour4.White.Opacity(64),
+                            Font = FontUsage.Default.With(size: 40, weight: "Regular"),
                         },
                         new SdfSpriteText
                         {
