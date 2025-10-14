@@ -92,13 +92,13 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
     /// <summary>
     /// The index of the face to use.
     /// </summary>
-    private readonly int faceIndex;
+    public int FaceIndex { private get; init; } = 0;
 
     /// <summary>
     /// The index of the named instance to use if the font is a variable font.
     /// Ignored for non-variable fonts.
     /// </summary>
-    private readonly int namedInstance;
+    public int NamedInstance { private get; init; } = 0;
 
     protected readonly ResourceStore<byte[]> Store;
 
@@ -122,7 +122,7 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
         if (error != FT_Err_Ok) throw new FreeTypeException(error);
     }
 
-    public OutlineGlyphStore(ResourceStore<byte[]> store, string? assetName = null, int faceIndex = 0, int namedInstance = 0)
+    public OutlineGlyphStore(ResourceStore<byte[]> store, string? assetName = null)
     {
         Store = new ResourceStore<byte[]>(store);
 
@@ -133,8 +133,6 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
         Store.AddExtension("ttc");
 
         AssetName = assetName;
-        this.faceIndex = faceIndex;
-        this.namedInstance = namedInstance;
 
         // Assign tentative resource name before a proper PostScript name is available.
         FontName = assetName?.Split('/').Last() ?? string.Empty;
@@ -216,7 +214,7 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
                 num_params = 0,
             };
 
-            nint compoundFaceIndex = (ushort)faceIndex | (namedInstance << 16);
+            nint compoundFaceIndex = (ushort)FaceIndex | (NamedInstance << 16);
 
             try
             {
