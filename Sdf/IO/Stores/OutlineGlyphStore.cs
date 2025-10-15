@@ -20,7 +20,6 @@ CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
 TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
-using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 using FreeTypeSharp;
 using osu.Framework.Extensions;
@@ -39,6 +38,9 @@ using static FreeTypeSharp.FT_Render_Mode_;
 
 namespace Sdf.IO.Stores;
 
+/// <summary>
+/// A basic glyph store that will rasterize glyphs from outlines every character retrieval.
+/// </summary>
 public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDisposable
 {
     /// <summary>
@@ -76,11 +78,6 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
     private readonly Lock faceLock = new Lock();
 
     private readonly TaskCompletionSource<nint> completionSource = new TaskCompletionSource<nint>();
-
-    /// <summary>
-    /// Cache for glyph metrics and textures.
-    /// </summary>
-    private readonly ConcurrentDictionary<uint, OutlineGlyph> glyphCache = new();
 
     protected readonly string? AssetName;
 
@@ -149,7 +146,7 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
         GC.SuppressFinalize(this);
     }
 
-    protected unsafe void Dispose(bool isDisposing)
+    protected unsafe virtual void Dispose(bool isDisposing)
     {
         if (Face is not null)
         {
@@ -351,21 +348,12 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
     bool IGlyphStore.HasGlyph(char c) => HasGlyph(c);
 
     /// <summary>
-    /// Retrieves metrics for a specific glyph.
-    /// </summary>
-    /// <param name="glyphIndex">The glyph index of the character in this font.</param>
-    private OutlineGlyph GetMetricsByGlyphIndex(uint glyphIndex)
-    {
-        return glyphCache.GetOrAdd(glyphIndex, LoadMetrics);
-    }
-
-    /// <summary>
     /// Load metrics for a glyph.
     /// </summary>
     /// <param name="glyphIndex">The index of the glyph.</param>
-    /// <returns>A new <see cref="OutlineGlyph"/> containing the glyph metrics.</returns>
-    /// <exception cref="FreeTypeException"></exception>
-    private unsafe OutlineGlyph LoadMetrics(uint glyphIndex)
+    /// <returns>A new <see cref="GlyphMetrics"/> containing the glyph metrics.</returns>
+    /// <exception cref="FreeTypeException">The metrics fails to load.</exception>
+    protected virtual unsafe GlyphMetrics LoadMetrics(uint glyphIndex)
     {
         FT_Error error;
         nint horiBearingX;
@@ -391,7 +379,7 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
         float yOffset = BASELINE - (horiBearingY / 64.0f) - SDF_SPREAD;
         float advance = horiAdvance / 64.0f;
 
-        return new OutlineGlyph
+        return new GlyphMetrics
         {
             XOffset = xOffset,
             YOffset = yOffset,
@@ -411,8 +399,8 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
 
         try
         {
-            var glyph = GetMetricsByGlyphIndex(FT_Get_Char_Index(Face, c));
-            return new CharacterGlyph((char)c, glyph.XOffset, glyph.YOffset, glyph.Advance, Baseline ?? 0f, this);
+            var glyph = LoadMetrics(FT_Get_Char_Index(Face, c));
+            return new CharacterGlyph((char)c, glyph.XOffset, glyph.YOffset, glyph.Advance, BASELINE, this);
         }
         catch (FreeTypeException e)
         {
@@ -454,7 +442,7 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
             return null!;
 
         uint codePoint = name.Last();
-        return GetGlyphTexture(Face, codePoint);
+        return GetCharTexture((nint)Face, codePoint);
     }
 
     public async Task<TextureUpload> GetAsync(string name, CancellationToken cancellationToken = default)
@@ -465,58 +453,31 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
         uint codePoint = name.Last();
         var face = await completionSource.Task.ConfigureAwait(false);
 
-        return GetGlyphTexture(face, codePoint);
+        return GetCharTexture(face, codePoint);
     }
 
     /// <summary>
-    /// Get the (possibly cached) <see cref="TextureUpload"/> for rendering a character.
+    /// Get the <see cref="TextureUpload"/> for rendering a character.
     /// </summary>
-    /// <param name="face">The <see cref="FT_FaceRec_*"/> object representing the loaded font.</param>
+    /// <param name="face">The unmanaged object representing the loaded font.</param>
     /// <param name="codePoint">The code point to render.</param>
-    private unsafe TextureUpload GetGlyphTexture(FT_FaceRec_* face, uint codePoint)
+    private unsafe TextureUpload GetCharTexture(nint face, uint codePoint)
     {
-        uint index = FT_Get_Char_Index(face, codePoint);
-
-        return glyphCache.AddOrUpdate(index, (index) =>
-        {
-            var glyph = LoadMetrics(index);
-            var texture = RasterizeGlyph(face, index);
-
-            glyph.Texture = texture;
-            return glyph;
-        }, (index, cached) =>
-        {
-            if (cached.Texture is not null)
-                return cached;
-
-            var texture = RasterizeGlyph(face, index);
-            return new OutlineGlyph
-            {
-                XOffset = cached.XOffset,
-                YOffset = cached.YOffset,
-                Advance = cached.Advance,
-                Texture = texture,
-            };
-        }).Texture!;
+        uint index = FT_Get_Char_Index((FT_FaceRec_*)face, codePoint);
+        return GetGlyphTexture(face, index);
     }
 
     /// <summary>
-    /// Get the (possibly cached) <see cref="TextureUpload"/> for rendering a character.
+    /// Get the <see cref="TextureUpload"/> for rendering a glyph.
     /// </summary>
-    /// <param name="face">The <see cref="FT_FaceRec_*"/> object representing the loaded font.</param>
-    /// <param name="codePoint">The code point to render.</param>
-    private unsafe TextureUpload GetGlyphTexture(nint face, uint codePoint) => GetGlyphTexture((FT_FaceRec_*)face, codePoint);
-
-    /// <summary>
-    /// Rasterize a glyph.
-    /// </summary>
-    /// <param name="face">The <see cref="FT_FaceRec_*"/> object representing the loaded font.</param>
-    /// <param name="glyphIndex">The index in the font of the glyph to rasterize.</param>
-    /// <exception cref="FreeTypeException"></exception>
-    private unsafe TextureUpload RasterizeGlyph(FT_FaceRec_* face, uint glyphIndex)
+    /// <param name="ptr">A handle representing the loaded font.</param>
+    /// <param name="glyphIndex">The glyph's index in the font.</param>
+    /// <exception cref="FreeTypeException">Rasterization of the texture failed.</exception>
+    protected virtual unsafe TextureUpload GetGlyphTexture(nint ptr, uint glyphIndex)
     {
         Image<Rgba32> image;
         FT_Error error;
+        var face = (FT_FaceRec_*)ptr;
 
         // rasterize
         lock (faceLock)
@@ -632,7 +593,7 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
     /// <summary>
     /// Data used to lay out and render a character.
     /// </summary>
-    private class OutlineGlyph
+    protected class GlyphMetrics
     {
         /// <summary>
         /// The horizontal bearing of the character in pixels.
@@ -652,10 +613,5 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
         /// The horizontal advance of the character in pixels.
         /// </summary>
         public required float Advance { get; init; }
-
-        /// <summary>
-        /// The character rasterized for rendering.
-        /// </summary>
-        public TextureUpload? Texture { get; set; }
     }
 }
