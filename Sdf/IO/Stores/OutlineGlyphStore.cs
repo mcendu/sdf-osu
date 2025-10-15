@@ -304,7 +304,10 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
             return false;
 
         // FreeType presents an (actual or emulated) Unicode charmap by default.
-        return FT_Get_Char_Index(Face, c) != 0;
+        lock (faceLock)
+        {
+            return FT_Get_Char_Index(Face, c) != 0;
+        }
     }
 
     bool IGlyphStore.HasGlyph(char c) => HasGlyph(c);
@@ -336,7 +339,6 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
         }
 
         // FreeType outputs metric data in 26.6 fixed point. Convert to floating point accordingly.
-        FT_Glyph_Metrics_* ftMetrics = &Face->glyph->metrics;
         float xOffset = (horiBearingX / 64.0f) - SDF_SPREAD;
         float yOffset = BASELINE - (horiBearingY / 64.0f) - SDF_SPREAD;
         float advance = horiAdvance / 64.0f;
@@ -361,7 +363,14 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
 
         try
         {
-            var glyph = LoadMetrics(FT_Get_Char_Index(Face, c));
+            uint index;
+
+            lock (faceLock)
+            {
+                index = FT_Get_Char_Index(Face, c);
+            }
+
+            var glyph = LoadMetrics(index);
             return new CharacterGlyph((char)c, glyph.XOffset, glyph.YOffset, glyph.Advance, BASELINE, this);
         }
         catch (FreeTypeException e)
@@ -379,10 +388,16 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
             return 0;
 
         FT_Vector_ kerning;
-        uint indexLeft = FT_Get_Char_Index(Face, left);
-        uint indexRight = FT_Get_Char_Index(Face, right);
-        var error = FT_Get_Kerning(Face, indexLeft, indexRight, FT_KERNING_DEFAULT, &kerning);
+        FT_Error error;
 
+        lock (faceLock)
+        {
+            uint indexLeft = FT_Get_Char_Index(Face, left);
+            uint indexRight = FT_Get_Char_Index(Face, right);
+            error = FT_Get_Kerning(Face, indexLeft, indexRight, FT_KERNING_DEFAULT, &kerning);
+        }
+
+        // Fall back to a sane default when kerning cannot be retrieved.
         if (error != 0)
             return 0;
 
@@ -425,7 +440,11 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
     /// <param name="codePoint">The code point to render.</param>
     private unsafe TextureUpload GetCharTexture(nint face, uint codePoint)
     {
-        uint index = FT_Get_Char_Index((FT_FaceRec_*)face, codePoint);
+        uint index;
+
+        lock (faceLock)
+            index = FT_Get_Char_Index((FT_FaceRec_*)face, codePoint);
+
         return GetGlyphTexture(face, index);
     }
 
@@ -493,8 +512,11 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
             if (Face is null)
                 return (0, 0);
 
-            uint glyphIndex;
-            uint codePoint = (uint)FT_Get_First_Char(Face, &glyphIndex);
+            uint glyphIndex, codePoint;
+
+            lock (faceLock)
+                codePoint = (uint)FT_Get_First_Char(Face, &glyphIndex);
+
             return (codePoint, glyphIndex);
         }
 
@@ -503,8 +525,11 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
             if (Face is null)
                 return (0, 0);
 
-            uint glyphIndex;
-            uint codePoint = (uint)FT_Get_Next_Char(Face, prevCodePoint, &glyphIndex);
+            uint glyphIndex, codePoint;
+
+            lock (faceLock)
+                codePoint = (uint)FT_Get_Next_Char(Face, prevCodePoint, &glyphIndex);
+
             return (codePoint, glyphIndex);
         }
     }
