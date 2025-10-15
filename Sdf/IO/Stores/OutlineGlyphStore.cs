@@ -174,7 +174,7 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
             try
             {
                 var stream = (FTStream*)NativeMemory.AllocZeroed((nuint)sizeof(FTStream));
-                stream->size = new CULong(0x7FFFFFFF);
+                stream->size = new CULong((nuint)s.Length);
                 stream->descriptor.pointer = (nint)handle;
                 stream->read = &StreamReadCallback;
                 stream->close = &StreamCloseCallback;
