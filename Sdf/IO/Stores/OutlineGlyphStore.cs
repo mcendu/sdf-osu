@@ -174,27 +174,13 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
             // open the font
             try
             {
-                // HACK: work around bugs in bindings and ABI differences.
-                if (OperatingSystem.IsWindows() && RuntimeInformation.ProcessArchitecture == Architecture.X64)
-                {
-                    var stream = (FTStreamWindows*)NativeMemory.AllocZeroed((nuint)sizeof(FTStreamWindows));
-                    stream->size = 0x7FFFFFFF;
-                    stream->descriptor = (nint)handle;
-                    stream->read = &StreamReadCallback;
-                    stream->close = &StreamCloseCallback;
+                var stream = (FTStream*)NativeMemory.AllocZeroed((nuint)sizeof(FTStream));
+                stream->size = new CULong(0x7FFFFFFF);
+                stream->descriptor.pointer = (nint)handle;
+                stream->read = &StreamReadCallback;
+                stream->close = &StreamCloseCallback;
 
-                    ftStream = (FT_StreamRec_*)stream;
-                }
-                else
-                {
-                    var stream = (FTStream*)NativeMemory.AllocZeroed((nuint)sizeof(FTStream));
-                    stream->size = 0x7FFFFFFF;
-                    stream->descriptor = (nint)handle;
-                    stream->read = &StreamReadCallback;
-                    stream->close = &StreamCloseCallback;
-
-                    ftStream = (FT_StreamRec_*)stream;
-                }
+                ftStream = (FT_StreamRec_*)stream;
             }
             catch (Exception)
             {
@@ -261,35 +247,23 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
     /// Stream read and seek callback used by FreeType.
     /// </summary>
     [UnmanagedCallersOnly]
-    private static unsafe nuint StreamReadCallback(FT_StreamRec_* ftStream, nuint offset, byte* buffer, nuint count)
+    private static unsafe CULong StreamReadCallback(FTStream* ftStream, CULong offset, byte* buffer, CULong count)
     {
         try
         {
-            Stream s;
+            var s = (Stream)((GCHandle)ftStream->descriptor.pointer).Target!;
 
-            // HACK: work around bugs in bindings and ABI differences.
-            if (OperatingSystem.IsWindows() && RuntimeInformation.ProcessArchitecture == Architecture.X64)
-            {
-                var actualFtStream = (FTStreamWindows*)ftStream;
-                s = (Stream)((GCHandle)actualFtStream->descriptor).Target!;
-            }
-            else
-            {
-                var actualFtStream = (FTStream*)ftStream;
-                s = (Stream)((GCHandle)actualFtStream->descriptor).Target!;
-            }
+            s.Seek((long)offset.Value, SeekOrigin.Begin);
 
-            s.Seek((long)offset, SeekOrigin.Begin);
-
-            if (count != 0)
+            if (count.Value != 0)
             {
-                nuint len = (nuint)s.Read(new Span<byte>(buffer, (int)count));
-                return len;
+                nuint len = (nuint)s.Read(new Span<byte>(buffer, (int)count.Value));
+                return new CULong(len);
             }
             else
             {
                 // Caller expects seek only operations return 0 on success.
-                return 0;
+                return new CULong(0);
             }
         }
         catch (Exception)
@@ -298,7 +272,7 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
             // instead of as an exception. It expects non-zero to be returned
             // for failed seek-only operations, and zero for failed seek-and-
             // read operations.
-            return count == 0 ? 1u : 0;
+            return new CULong(count.Value == 0 ? 1u : 0);
         }
     }
 
@@ -306,21 +280,9 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
     /// Stream close callback used by FreeType.
     /// </summary>
     [UnmanagedCallersOnly]
-    private static unsafe void StreamCloseCallback(FT_StreamRec_* ftStream)
+    private static unsafe void StreamCloseCallback(FTStream* ftStream)
     {
-        GCHandle handle;
-
-        // HACK: work around bugs in bindings and ABI differences.
-        if (OperatingSystem.IsWindows() && RuntimeInformation.ProcessArchitecture == Architecture.X64)
-        {
-            var actualFtStream = (FTStreamWindows*)ftStream;
-            handle = (GCHandle)actualFtStream->descriptor;
-        }
-        else
-        {
-            var actualFtStream = (FTStream*)ftStream;
-            handle = (GCHandle)actualFtStream->descriptor;
-        }
+        var handle = (GCHandle)ftStream->descriptor.pointer;
 
         var s = (Stream?)handle.Target;
 
@@ -548,47 +510,42 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
     }
 
     /// <summary>
-    /// The layout of FT_Stream on systems where sizeof(unsigned long) == sizeof(size_t).
+    /// FreeType's handle to an input stream.
     /// </summary>
     /// <remarks>
-    /// Applies to most platforms, including most Unixes and ARM64 Windows.
+    /// This is a part of the workaround for a bug in FreeTypeSharp. Remove
+    /// this struct and the workaround when the bug is fixed.
     /// </remarks>
+    /// <seealso href="https://github.com/ryancheung/FreeTypeSharp/issues/31"/> 
     [StructLayout(LayoutKind.Sequential)]
     private unsafe struct FTStream
     {
         public nint _base;
-        public nuint size;
-        public nuint pos;
-        public nint descriptor;
-        public nint pathname;
-        public delegate* unmanaged<FT_StreamRec_*, nuint, byte*, nuint, nuint> read;
-        public delegate* unmanaged<FT_StreamRec_*, void> close;
+        public CULong size;
+        public CULong pos;
+        public FTStreamDesc descriptor;
+        public FTStreamDesc pathname;
+        public delegate* unmanaged<FTStream*, CULong, byte*, CULong, CULong> read;
+        public delegate* unmanaged<FTStream*, void> close;
         public nint memory;
         public nint cursor;
         public nint limit;
     };
 
     /// <summary>
-    /// The layout of FT_Stream on systems where sizeof(unsigned long) == 4.
+    /// A union type used to store a handle to the input stream.
     /// </summary>
     /// <remarks>
-    /// Applies to x64 Windows. While it also applies to FreeType compiled
-    /// against the ARM64EC ABI, this case is not supported.
+    /// This is a part of the workaround for a bug in FreeTypeSharp. Remove
+    /// this struct and the workaround when the bug is fixed.
     /// </remarks>
-    [StructLayout(LayoutKind.Sequential)]
-    private unsafe struct FTStreamWindows
+    /// <seealso href="https://github.com/ryancheung/FreeTypeSharp/issues/31"/> 
+    [StructLayout(LayoutKind.Explicit)]
+    private unsafe struct FTStreamDesc
     {
-        public nint _base;
-        public uint size;
-        public uint pos;
-        public nint descriptor;
-        public nint pathname;
-        public delegate* unmanaged<FT_StreamRec_*, nuint, byte*, nuint, nuint> read;
-        public delegate* unmanaged<FT_StreamRec_*, void> close;
-        public nint memory;
-        public nint cursor;
-        public nint limit;
-    };
+        [FieldOffset(0)] public CLong value;
+        [FieldOffset(0)] public nint pointer;
+    }
 
     /// <summary>
     /// Data used to lay out and render a character.
