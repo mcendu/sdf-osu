@@ -32,7 +32,7 @@ layout(set = 0, binding = 0) uniform lowp texture2D m_DistanceFields;
 layout(set = 0, binding = 1) uniform lowp sampler m_Sampler;
 
 const float spread = 8.0;
-const float filterSizeScale = 1.0 / (spread * 2.0);
+const float filterSizeScale = 1.0 / (4.0 * spread);
 
 void main(void)
 {
@@ -40,10 +40,11 @@ void main(void)
     ivec2 textureResolution = textureSize(sampler2D(m_DistanceFields, m_Sampler), 0);
     lowp float dist = texture(sampler2D(m_DistanceFields, m_Sampler), v_TexCoord).r;
 
-    float filterX = dFdx(v_TexCoord).s * float(textureResolution.x) * filterSizeScale;
+    vec2 filterVec = vec2(dFdx(v_TexCoord).s, dFdy(v_TexCoord).t) * vec2(textureResolution) * filterSizeScale;
+    lowp float filterSize = abs(filterVec.x) + abs(filterVec.y);
 
-    // add 0.5 * filterX to make things legible at smaller sizes
-    float coverage = (dist - 0.5 + 0.5 * filterX) / abs(filterX);
+    // add 0.5 * filterSize to make things legible at smaller sizes
+    lowp float coverage = (dist - 0.5 + 0.5 * filterSize) / filterSize;
 
     o_Colour = v_Colour * vec4(vec3(1.0), clamp(coverage, 0.0, 1.0));
 }
