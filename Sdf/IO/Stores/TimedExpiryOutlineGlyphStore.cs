@@ -28,7 +28,7 @@ using osu.Framework.IO.Stores;
 namespace Sdf.IO.Stores;
 
 /// <summary>
-/// A glyph store that caches metrics and outlines in memory temporarily, to allow more efficient retrieval.
+/// A glyph store that caches metrics and rendered outlines in memory temporarily, to allow more efficient retrieval.
 /// </summary>
 public class TimedExpiryOutlineGlyphStore : OutlineGlyphStore
 {

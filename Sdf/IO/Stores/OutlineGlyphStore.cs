@@ -510,7 +510,7 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
     }
 
     /// <summary>
-    /// FreeType's handle to an input stream.
+    /// An object used by FreeType for reading data.
     /// </summary>
     /// <remarks>
     /// This is a part of the workaround for a bug in FreeTypeSharp. Remove
