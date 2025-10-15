@@ -126,7 +126,6 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
         Store.AddExtension("ttf");
         Store.AddExtension("otf");
         Store.AddExtension("woff");
-        Store.AddExtension("woff2");
         Store.AddExtension("ttc");
 
         AssetName = assetName;
