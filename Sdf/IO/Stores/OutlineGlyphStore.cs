@@ -41,6 +41,9 @@ namespace Sdf.IO.Stores;
 /// <summary>
 /// A basic glyph store that will rasterize glyphs from outlines every character retrieval.
 /// </summary>
+/// <remarks>
+/// This class uses FreeType for glyph loading and rasterization.
+/// </remarks>
 public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDisposable
 {
     /// <summary>
