@@ -257,8 +257,7 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
 
             if (count.Value != 0)
             {
-                nuint len = (nuint)s.Read(new Span<byte>(buffer, (int)count.Value));
-                return new CULong(len);
+                return new CULong((uint)s.Read(new Span<byte>(buffer, (int)count.Value)));
             }
             else
             {
