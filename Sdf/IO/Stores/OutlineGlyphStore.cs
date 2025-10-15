@@ -99,7 +99,7 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
 
     protected readonly ResourceStore<byte[]> Store;
 
-    public string FontName { get; private set; }
+    public string FontName { get; init; }
 
     public float? Baseline => BASELINE;
 
@@ -213,9 +213,6 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
                 error = FT_Set_Pixel_Sizes(face, 0, Resolution);
 
                 if (error != 0) throw new FreeTypeException(error);
-
-                // get font name
-                FontName = Marshal.PtrToStringUTF8((nint)FT_Get_Postscript_Name(face)) ?? FontName;
 
                 completionSource.SetResult((nint)face);
             }

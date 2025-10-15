@@ -51,60 +51,64 @@ namespace Sdf
 
             Fonts.AddTextureSource(new TimedExpiryOutlineGlyphStore(Resources, @"Fonts/Exo2-VariableFont_wght")
             {
+                FontName = "Exo2-Regular",
                 NamedInstance = 4,
             });
             Fonts.AddTextureSource(new TimedExpiryOutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc-VF")
             {
+                FontName = "NotoSansCJKsc-Regular",
                 NamedInstance = 4,
             });
 
             Fonts.AddTextureSource(new TimedExpiryOutlineGlyphStore(Resources, @"Fonts/Exo2-VariableFont_wght")
             {
+                FontName = "Exo2-Thin",
                 NamedInstance = 1,
             });
             Fonts.AddTextureSource(new TimedExpiryOutlineGlyphStore(Resources, @"Fonts/Exo2-VariableFont_wght")
             {
+                FontName = "Exo2-Light",
                 NamedInstance = 3,
             });
             Fonts.AddTextureSource(new TimedExpiryOutlineGlyphStore(Resources, @"Fonts/Exo2-VariableFont_wght")
             {
+                FontName = "Exo2-Medium",
                 NamedInstance = 5,
             });
             Fonts.AddTextureSource(new TimedExpiryOutlineGlyphStore(Resources, @"Fonts/Exo2-VariableFont_wght")
             {
-                NamedInstance = 6,
-            });
-            Fonts.AddTextureSource(new TimedExpiryOutlineGlyphStore(Resources, @"Fonts/Exo2-VariableFont_wght")
-            {
+                FontName = "Exo2-Bold",
                 NamedInstance = 7,
             });
             Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2-VariableFont_wght")
             {
+                FontName = "Exo2-Black",
                 NamedInstance = 9,
             });
 
             Fonts.AddTextureSource(new TimedExpiryOutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc-VF")
             {
+                FontName = "NotoSansCJKsc-Thin",
                 NamedInstance = 1,
             });
             Fonts.AddTextureSource(new TimedExpiryOutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc-VF")
             {
+                FontName = "NotoSansCJKsc-Light",
                 NamedInstance = 2,
             });
             Fonts.AddTextureSource(new TimedExpiryOutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc-VF")
             {
-                NamedInstance = 3,
-            });
-            Fonts.AddTextureSource(new TimedExpiryOutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc-VF")
-            {
+                FontName = "NotoSansCJKsc-Medium",
                 NamedInstance = 5,
             });
             Fonts.AddTextureSource(new TimedExpiryOutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc-VF")
             {
+                FontName = "NotoSansCJKsc-Bold",
                 NamedInstance = 6,
             });
             Fonts.AddTextureSource(new TimedExpiryOutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc-VF")
             {
+                FontName = "NotoSansCJKsc-Black",
                 NamedInstance = 7,
             });
         }
