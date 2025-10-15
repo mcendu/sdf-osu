@@ -80,7 +80,7 @@ namespace Sdf
                 FontName = "Exo2-Bold",
                 NamedInstance = 7,
             });
-            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2-VariableFont_wght")
+            Fonts.AddTextureSource(new TimedExpiryOutlineGlyphStore(Resources, @"Fonts/Exo2-VariableFont_wght")
             {
                 FontName = "Exo2-Black",
                 NamedInstance = 9,
