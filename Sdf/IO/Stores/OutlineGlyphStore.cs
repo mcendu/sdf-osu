@@ -20,22 +20,12 @@ CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
 TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
-using System.Runtime.InteropServices;
-using FreeTypeSharp;
 using osu.Framework.Extensions;
 using osu.Framework.Graphics.Textures;
 using osu.Framework.IO.Stores;
-using osu.Framework.Logging;
 using osu.Framework.Text;
 using Sdf.Text;
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.PixelFormats;
-using static FreeTypeSharp.FT;
-using static FreeTypeSharp.FT_Error;
-using static FreeTypeSharp.FT_Kerning_Mode_;
-using static FreeTypeSharp.FT_LOAD;
-using static FreeTypeSharp.FT_Render_Mode_;
 
 namespace Sdf.IO.Stores;
 
@@ -146,10 +136,6 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
 
     CharacterGlyph IResourceStore<CharacterGlyph>.Get(string name) => Get(name[0])!;
 
-    protected virtual TextureUpload? GetCachedGlyph(uint glyphIndex) => null;
-
-    protected virtual TextureUpload? CacheGlyph(uint index, TextureUpload? texture) => texture;
-
     public TextureUpload Get(string name)
     {
         if (name.Length > 1 && !name.StartsWith($@"{FontName}/", StringComparison.Ordinal))
@@ -158,8 +144,7 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
         char c = name.Last();
         uint glyphIndex = Font.GetGlyphIndex(c);
 
-        return GetCachedGlyph(glyphIndex)
-            ?? CacheGlyph(glyphIndex, Font.RasterizeGlyph(glyphIndex, Variation))!;
+        return Font.RasterizeGlyph(glyphIndex, Variation)!;
     }
 
     public async Task<TextureUpload> GetAsync(string name, CancellationToken cancellationToken = default)
@@ -171,8 +156,7 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
         var font = await completionSource.Task.ConfigureAwait(false);
         uint glyphIndex = await font.GetGlyphIndexAsync(c);
 
-        return GetCachedGlyph(glyphIndex)
-            ?? CacheGlyph(glyphIndex, await font.RasterizeGlyphAsync(glyphIndex, Variation, cancellationToken))!;
+        return await font.RasterizeGlyphAsync(glyphIndex, Variation, cancellationToken);
     }
 
     public Stream GetStream(string name) => throw new NotSupportedException();

@@ -49,7 +49,7 @@ namespace Sdf
         {
             Resources.AddStore(new DllResourceStore(typeof(SdfResources).Assembly));
 
-            Fonts.AddTextureSource(new TimedExpiryOutlineGlyphStore(Resources, @"Fonts/Exo2-VariableFont_wght")
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2-VariableFont_wght")
             {
                 FontName = "Exo2-Regular",
                 Variation = new()
@@ -57,7 +57,7 @@ namespace Sdf
                     NamedInstance = 4,
                 }
             });
-            Fonts.AddTextureSource(new TimedExpiryOutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc-VF")
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc-VF")
             {
                 FontName = "NotoSansCJKsc-Regular",
                 Variation = new()
@@ -66,7 +66,7 @@ namespace Sdf
                 }
             });
 
-            Fonts.AddTextureSource(new TimedExpiryOutlineGlyphStore(Resources, @"Fonts/Exo2-VariableFont_wght")
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2-VariableFont_wght")
             {
                 FontName = "Exo2-Thin",
                 Variation = new()
@@ -74,7 +74,7 @@ namespace Sdf
                     NamedInstance = 1,
                 }
             });
-            Fonts.AddTextureSource(new TimedExpiryOutlineGlyphStore(Resources, @"Fonts/Exo2-VariableFont_wght")
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2-VariableFont_wght")
             {
                 FontName = "Exo2-Light",
                 Variation = new()
@@ -82,7 +82,7 @@ namespace Sdf
                     NamedInstance = 3,
                 }
             });
-            Fonts.AddTextureSource(new TimedExpiryOutlineGlyphStore(Resources, @"Fonts/Exo2-VariableFont_wght")
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2-VariableFont_wght")
             {
                 FontName = "Exo2-Medium",
                 Variation = new()
@@ -90,7 +90,7 @@ namespace Sdf
                     NamedInstance = 5,
                 }
             });
-            Fonts.AddTextureSource(new TimedExpiryOutlineGlyphStore(Resources, @"Fonts/Exo2-VariableFont_wght")
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2-VariableFont_wght")
             {
                 FontName = "Exo2-Bold",
                 Variation = new()
@@ -98,7 +98,7 @@ namespace Sdf
                     NamedInstance = 7,
                 }
             });
-            Fonts.AddTextureSource(new TimedExpiryOutlineGlyphStore(Resources, @"Fonts/Exo2-VariableFont_wght")
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2-VariableFont_wght")
             {
                 FontName = "Exo2-Black",
                 Variation = new()
@@ -107,7 +107,7 @@ namespace Sdf
                 }
             });
 
-            Fonts.AddTextureSource(new TimedExpiryOutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc-VF")
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc-VF")
             {
                 FontName = "NotoSansCJKsc-Thin",
                 Variation = new()
@@ -115,7 +115,7 @@ namespace Sdf
                     NamedInstance = 1,
                 }
             });
-            Fonts.AddTextureSource(new TimedExpiryOutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc-VF")
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc-VF")
             {
                 FontName = "NotoSansCJKsc-Light",
                 Variation = new()
@@ -123,7 +123,7 @@ namespace Sdf
                     NamedInstance = 2,
                 }
             });
-            Fonts.AddTextureSource(new TimedExpiryOutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc-VF")
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc-VF")
             {
                 FontName = "NotoSansCJKsc-Medium",
                 Variation = new()
@@ -131,7 +131,7 @@ namespace Sdf
                     NamedInstance = 5,
                 }
             });
-            Fonts.AddTextureSource(new TimedExpiryOutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc-VF")
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc-VF")
             {
                 FontName = "NotoSansCJKsc-Bold",
                 Variation = new()
@@ -139,7 +139,7 @@ namespace Sdf
                     NamedInstance = 6,
                 }
             });
-            Fonts.AddTextureSource(new TimedExpiryOutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc-VF")
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc-VF")
             {
                 FontName = "NotoSansCJKsc-Black",
                 Variation = new()
