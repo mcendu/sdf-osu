@@ -21,35 +21,35 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-using osu.Framework.Allocation;
-using osu.Framework.Graphics.Textures;
-using osu.Framework.IO.Stores;
+using System.Runtime.InteropServices;
 
-namespace Sdf.IO.Stores;
+namespace Sdf.Text;
 
 /// <summary>
-/// A glyph store that caches metrics and rendered outlines in memory temporarily, to allow more efficient retrieval.
+/// Represents the configuration of an OpenType variable font.
 /// </summary>
-public class TimedExpiryOutlineGlyphStore : OutlineGlyphStore
+public class FontVariation
 {
-    private readonly TimedExpiryCache<uint, TextureUpload> textureCache = new();
+    /// <summary>
+    /// The named instance to use.
+    /// </summary>
+    /// <remarks>
+    /// If both <see cref="NamedInstance"/> and <see cref="Axes"/> are set,
+    /// only <see cref="Axes"/> is used. 
+    /// </remarks>
+    public uint NamedInstance { get; init; }
 
-    public TimedExpiryOutlineGlyphStore(ResourceStore<byte[]> store, string? assetName = null) : base(store, assetName)
-    {
-    }
-
-    protected override TextureUpload? GetCachedGlyph(uint glyphIndex)
-    {
-        if (!textureCache.TryGetValue(glyphIndex, out var texture))
-            return null;
-
-        return texture;
-    }
-
-    protected override TextureUpload? CacheGlyph(uint index, TextureUpload? texture)
-    {
-        if (texture is not null) textureCache.Add(index, texture);
-
-        return texture;
-    }
+    /// <summary>
+    /// The configuration of the variable font.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Numbers are in 16.16 fixed point format.
+    /// </para>
+    /// <para>
+    /// If both <see cref="NamedInstance"/> and <see cref="Axes"/> are set,
+    /// only <see cref="Axes"/> is used.
+    /// </para>
+    /// </remarks>
+    public CLong[]? Axes { get; init; }
 }

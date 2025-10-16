@@ -27,6 +27,7 @@ using osu.Framework.Graphics.Textures;
 using osu.Framework.IO.Stores;
 using osu.Framework.Logging;
 using osu.Framework.Text;
+using Sdf.Text;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
@@ -46,41 +47,9 @@ namespace Sdf.IO.Stores;
 /// </remarks>
 public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDisposable
 {
-    /// <summary>
-    /// The spread of the FreeType generated signed distance fields.
-    /// </summary>
-    /// <remarks>
-    /// This is equal to the default spread value defined by FreeType.
-    /// </remarks>
-    /// <seealso href="https://freetype.org/freetype2/docs/reference/ft2-properties.html#spread"/>
-    private const int SDF_SPREAD = 8;
+    private OutlineFont Font => completionSource.Task.GetResultSafely();
 
-    /// <summary>
-    /// The hardcoded baseline value for mapping FreeType metrics into BMFont metrics.
-    /// </summary>
-    private const float BASELINE = 85.0f;
-
-    /// <summary>
-    /// An instance of the FreeType library.
-    /// </summary>
-    private static readonly unsafe FT_LibraryRec_* freeType;
-
-    /// <summary>
-    /// Locks <see cref="freeType"/> for opening and closing fonts.
-    /// </summary>
-    private static readonly Lock freeTypeLock = new Lock();
-
-    /// <summary>
-    /// The underlying unmanaged font handle.
-    /// </summary>
-    private unsafe FT_FaceRec_* Face => (FT_FaceRec_*)completionSource.Task.GetResultSafely();
-
-    /// <summary>
-    /// Locks <see cref="Face"/> and its glyph slot for exclusive access. 
-    /// </summary>
-    private readonly Lock faceLock = new Lock();
-
-    private readonly TaskCompletionSource<nint> completionSource = new TaskCompletionSource<nint>();
+    private TaskCompletionSource<OutlineFont> completionSource = new();
 
     protected readonly string? AssetName;
 
@@ -94,33 +63,13 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
     /// </summary>
     public int FaceIndex { private get; init; } = 0;
 
-    /// <summary>
-    /// The index of the named instance to use if the font is a variable font.
-    /// Ignored for non-variable fonts.
-    /// </summary>
-    public int NamedInstance { private get; init; } = 0;
+    public FontVariation? Variation { private get; init; }
 
     protected readonly ResourceStore<byte[]> Store;
 
     public string FontName { get; init; }
 
-    public float? Baseline => BASELINE;
-
-    /// <summary>
-    /// Initializes FreeType for loading outline fonts.
-    /// </summary>
-    /// <exception cref="FreeTypeException">FreeType failed to initialize.</exception>
-    static unsafe OutlineGlyphStore()
-    {
-        FT_Error error;
-
-        fixed (FT_LibraryRec_** pp = &freeType)
-        {
-            error = FT_Init_FreeType(pp);
-        }
-
-        if (error != FT_Err_Ok) throw new FreeTypeException(error);
-    }
+    public float? Baseline => OutlineFont.BASELINE;
 
     public OutlineGlyphStore(ResourceStore<byte[]> store, string? assetName = null)
     {
@@ -133,7 +82,6 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
 
         AssetName = assetName;
 
-        // Assign tentative resource name before a proper PostScript name is available.
         FontName = assetName?.Split('/').Last() ?? string.Empty;
     }
 
@@ -148,276 +96,70 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
         GC.SuppressFinalize(this);
     }
 
-    protected unsafe virtual void Dispose(bool isDisposing)
+    protected virtual void Dispose(bool isDisposing)
     {
-        if (Face is not null)
+        if (completionSource.Task.IsCompletedSuccessfully)
         {
-            lock (freeTypeLock)
-            {
-                FT_Done_Face(Face);
-            }
+            Font.Dispose();
         }
     }
 
-    /// <summary>
-    /// Opens the underlying font for processing.
-    /// </summary>
-    /// <exception cref="FileNotFoundException">The requested font does not exist.</exception>
-    /// <exception cref="FreeTypeException">FreeType refused to open the font.</exception>
-    private unsafe void LoadFont()
+    public async Task LoadFontAsync()
     {
-        try
+        var font = new OutlineFont(Store, AssetName ?? throw new ArgumentNullException(), FaceIndex)
         {
-            Stream? s = Store.GetStream(AssetName) ?? throw new FileNotFoundException();
-            var handle = GCHandle.Alloc(s);
-            FT_FaceRec_* face = null;
-            FT_StreamRec_* ftStream = null;
-
-            // open the font
-            try
-            {
-                var stream = (FTStream*)NativeMemory.AllocZeroed((nuint)sizeof(FTStream));
-                stream->size = new CULong((nuint)s.Length);
-                stream->descriptor.pointer = (nint)handle;
-                stream->read = &StreamReadCallback;
-                stream->close = &StreamCloseCallback;
-
-                ftStream = (FT_StreamRec_*)stream;
-            }
-            catch (Exception)
-            {
-                s?.Dispose();
-                handle.Free();
-                throw;
-            }
-
-
-            var openArgs = new FT_Open_Args_
-            {
-                flags = 0x2, // FT_OPEN_STREAM
-                stream = ftStream,
-                num_params = 0,
-            };
-
-            nint compoundFaceIndex = (ushort)FaceIndex | (NamedInstance << 16);
-
-            try
-            {
-                FT_Error error;
-
-                lock (freeTypeLock)
-                {
-                    error = FT_Open_Face(freeType, &openArgs, compoundFaceIndex, &face);
-                }
-
-                if (error != 0) throw new FreeTypeException(error);
-
-                // set pixel size
-                error = FT_Set_Pixel_Sizes(face, 0, Resolution);
-
-                if (error != 0) throw new FreeTypeException(error);
-
-                completionSource.SetResult((nint)face);
-            }
-            catch (Exception)
-            {
-                // At this point FreeType owns all unmanaged resources allocated above, and
-                // FT_Done_Face should release them all.
-                if (face is not null)
-                {
-                    lock (freeTypeLock)
-                    {
-                        FT_Done_Face(face);
-                    }
-                }
-
-                throw;
-            }
-        }
-        catch (Exception e)
-        {
-            Logger.Error(e, $"Couldn't load font asset from {AssetName}.");
-            completionSource.SetResult(0);
-            throw;
-        }
-    }
-
-    /// <summary>
-    /// Stream read and seek callback used by FreeType.
-    /// </summary>
-    [UnmanagedCallersOnly]
-    private static unsafe CULong StreamReadCallback(FTStream* ftStream, CULong offset, byte* buffer, CULong count)
-    {
-        try
-        {
-            var s = (Stream)((GCHandle)ftStream->descriptor.pointer).Target!;
-
-            s.Seek((long)offset.Value, SeekOrigin.Begin);
-
-            if (count.Value != 0)
-            {
-                return new CULong((uint)s.Read(new Span<byte>(buffer, (int)count.Value)));
-            }
-            else
-            {
-                // Caller expects seek only operations return 0 on success.
-                return new CULong(0);
-            }
-        }
-        catch (Exception)
-        {
-            // The caller excepts status to be reported in the return value
-            // instead of as an exception. It expects non-zero to be returned
-            // for failed seek-only operations, and zero for failed seek-and-
-            // read operations.
-            return new CULong(count.Value == 0 ? 1u : 0);
-        }
-    }
-
-    /// <summary>
-    /// Stream close callback used by FreeType.
-    /// </summary>
-    [UnmanagedCallersOnly]
-    private static unsafe void StreamCloseCallback(FTStream* ftStream)
-    {
-        var handle = (GCHandle)ftStream->descriptor.pointer;
-
-        var s = (Stream?)handle.Target;
-
-        handle.Free();
-        s?.Dispose();
-
-        // FreeType allows a `FT_Stream *` to free itself here.
-        NativeMemory.Free(ftStream);
-    }
-
-    public Task LoadFontAsync() => Task.Run(LoadFont);
-
-    /// <summary>
-    /// Whether a glyph exists for the specified character in this store.
-    /// </summary>
-    public unsafe bool HasGlyph(uint c)
-    {
-        if (Face is null)
-            return false;
-
-        // FreeType presents an (actual or emulated) Unicode charmap by default.
-        lock (faceLock)
-        {
-            return FT_Get_Char_Index(Face, c) != 0;
-        }
-    }
-
-    bool IGlyphStore.HasGlyph(char c) => HasGlyph(c);
-
-    /// <summary>
-    /// Load metrics for a glyph.
-    /// </summary>
-    /// <param name="glyphIndex">The index of the glyph.</param>
-    /// <returns>A new <see cref="GlyphMetrics"/> containing the glyph metrics.</returns>
-    /// <exception cref="FreeTypeException">The metrics fails to load.</exception>
-    protected virtual unsafe GlyphMetrics LoadMetrics(uint glyphIndex)
-    {
-        FT_Error error;
-        nint horiBearingX;
-        nint horiBearingY;
-        nint horiAdvance;
-
-        lock (faceLock)
-        {
-            error = FT_Load_Glyph(Face, glyphIndex, FT_LOAD_NO_BITMAP | FT_LOAD_NO_HINTING);
-            horiBearingX = Face->glyph->metrics.horiBearingX;
-            horiBearingY = Face->glyph->metrics.horiBearingY;
-            horiAdvance = Face->glyph->metrics.horiAdvance;
-        }
-
-        if (error != 0)
-        {
-            throw new FreeTypeException(error);
-        }
-
-        // FreeType outputs metric data in 26.6 fixed point. Convert to floating point accordingly.
-        float xOffset = (horiBearingX / 64.0f) - SDF_SPREAD;
-        float yOffset = BASELINE - (horiBearingY / 64.0f) - SDF_SPREAD;
-        float advance = horiAdvance / 64.0f;
-
-        return new GlyphMetrics
-        {
-            XOffset = xOffset,
-            YOffset = yOffset,
-            Advance = advance,
+            Resolution = Resolution,
         };
-    }
-
-    /// <summary>
-    /// Retrieves a <see cref="CharacterGlyph"/> that contains associated spacing information for a character.
-    /// </summary>
-    /// <param name="character">The character to retrieve the <see cref="CharacterGlyph"/> for.</param>
-    /// <returns>The <see cref="CharacterGlyph"/> containing associated spacing information for <paramref name="character"/>.</returns>
-    public unsafe CharacterGlyph? Get(uint c)
-    {
-        if (Face is null)
-            return null;
 
         try
         {
-            uint index;
-
-            lock (faceLock)
-            {
-                index = FT_Get_Char_Index(Face, c);
-            }
-
-            var glyph = LoadMetrics(index);
-            return new CharacterGlyph((char)c, glyph.XOffset, glyph.YOffset, glyph.Advance, BASELINE, this);
+            await font.LoadAsync();
         }
-        catch (FreeTypeException e)
+        finally
         {
-            Logger.Log($"Failed to load glyph for U+{(int)c:X4}: {e.Message}");
-            return null;
+            completionSource.SetResult(font);
         }
     }
 
-    CharacterGlyph? IGlyphStore.Get(char c) => Get(c);
-
-    public unsafe int GetKerning(char left, char right)
+    public bool HasGlyph(char c)
     {
-        if (Face is null)
-            return 0;
-
-        FT_Vector_ kerning;
-        FT_Error error;
-
-        lock (faceLock)
-        {
-            uint indexLeft = FT_Get_Char_Index(Face, left);
-            uint indexRight = FT_Get_Char_Index(Face, right);
-            error = FT_Get_Kerning(Face, indexLeft, indexRight, FT_KERNING_DEFAULT, &kerning);
-        }
-
-        // Fall back to a sane default when kerning cannot be retrieved.
-        if (error != 0)
-            return 0;
-
-        // osu!framework only supports horizontal kerning in integral values.
-        return (int)Math.Round(kerning.x / 64.0);
+        return Font.HasGlyph(c);
     }
 
-    Task<CharacterGlyph> IResourceStore<CharacterGlyph>.GetAsync(string name, CancellationToken cancellationToken) =>
-    Task.Run(() => ((IGlyphStore)this).Get(name[0]), cancellationToken)!;
+    public CharacterGlyph? Get(char c)
+    {
+        var metrics = Font.GetMetrics(Font.GetGlyphIndex(c), Variation);
+
+        if (metrics is null)
+            return null;
+
+        return new CharacterGlyph(c, metrics.XOffset, metrics.YOffset, metrics.XAdvance, metrics.Baseline, this);
+    }
+
+    public int GetKerning(char left, char right)
+    {
+        return Font.GetKerning(Font.GetGlyphIndex(left), Font.GetGlyphIndex(right), Variation);
+    }
+
+    Task<CharacterGlyph> IResourceStore<CharacterGlyph>.GetAsync(string name, CancellationToken cancellationToken)
+        => Task.Run(() => ((IGlyphStore)this).Get(name[0]), cancellationToken)!;
 
     CharacterGlyph IResourceStore<CharacterGlyph>.Get(string name) => Get(name[0])!;
 
-    public unsafe TextureUpload Get(string name)
-    {
-        if (Face is null)
-            return null!;
+    protected virtual TextureUpload? GetCachedGlyph(uint glyphIndex) => null;
 
+    protected virtual TextureUpload? CacheGlyph(uint index, TextureUpload? texture) => texture;
+
+    public TextureUpload Get(string name)
+    {
         if (name.Length > 1 && !name.StartsWith($@"{FontName}/", StringComparison.Ordinal))
             return null!;
 
-        uint codePoint = name.Last();
-        return GetCharTexture((nint)Face, codePoint);
+        char c = name.Last();
+        uint glyphIndex = Font.GetGlyphIndex(c);
+
+        return GetCachedGlyph(glyphIndex)
+            ?? CacheGlyph(glyphIndex, Font.RasterizeGlyph(glyphIndex, Variation))!;
     }
 
     public async Task<TextureUpload> GetAsync(string name, CancellationToken cancellationToken = default)
@@ -425,173 +167,21 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
         if (name.Length > 1 && !name.StartsWith($@"{FontName}/", StringComparison.Ordinal))
             return null!;
 
-        uint codePoint = name.Last();
-        var face = await completionSource.Task.ConfigureAwait(false);
+        char c = name.Last();
+        var font = await completionSource.Task.ConfigureAwait(false);
+        uint glyphIndex = await font.GetGlyphIndexAsync(c);
 
-        return GetCharTexture(face, codePoint);
-    }
-
-    /// <summary>
-    /// Get the <see cref="TextureUpload"/> for rendering a character.
-    /// </summary>
-    /// <param name="face">The unmanaged object representing the loaded font.</param>
-    /// <param name="codePoint">The code point to render.</param>
-    private unsafe TextureUpload GetCharTexture(nint face, uint codePoint)
-    {
-        uint index;
-
-        lock (faceLock)
-            index = FT_Get_Char_Index((FT_FaceRec_*)face, codePoint);
-
-        return GetGlyphTexture(face, index);
-    }
-
-    /// <summary>
-    /// Get the <see cref="TextureUpload"/> for rendering a glyph.
-    /// </summary>
-    /// <param name="ptr">A handle representing the loaded font.</param>
-    /// <param name="glyphIndex">The glyph's index in the font.</param>
-    /// <exception cref="FreeTypeException">Rasterization of the texture failed.</exception>
-    protected virtual unsafe TextureUpload GetGlyphTexture(nint ptr, uint glyphIndex)
-    {
-        Image<Rgba32> image;
-        FT_Error error;
-        var face = (FT_FaceRec_*)ptr;
-
-        // rasterize
-        lock (faceLock)
-        {
-            error = FT_Load_Glyph(face, glyphIndex, FT_LOAD_NO_BITMAP | FT_LOAD_NO_HINTING | FT_LOAD_RENDER);
-
-            if (error != 0) throw new FreeTypeException(error);
-
-            error = FT_Render_Glyph(face->glyph, FT_RENDER_MODE_SDF);
-
-            if (error != 0) throw new FreeTypeException(error);
-
-            // copy to TextureUpload
-            var ftBitmap = &face->glyph->bitmap;
-            int width = ftBitmap->width != 0 ? (int)ftBitmap->width : 1;
-            int height = ftBitmap->rows != 0 ? (int)ftBitmap->rows : 1;
-            image = new Image<Rgba32>(width, height, new Rgba32(0, 0, 0, byte.MaxValue));
-
-            for (int y = 0; y < ftBitmap->rows; ++y)
-            {
-                var srcRow = new ReadOnlySpan<byte>(ftBitmap->buffer + y * ftBitmap->pitch, ftBitmap->pitch);
-                var dstRow = image.DangerousGetPixelRowMemory(y).Span;
-
-                for (int x = 0; x < ftBitmap->width; ++x)
-                {
-                    dstRow[x] = new Rgba32(srcRow[x], srcRow[x], srcRow[x], byte.MaxValue);
-                }
-            }
-        }
-
-        return new TextureUpload(image);
+        return GetCachedGlyph(glyphIndex)
+            ?? CacheGlyph(glyphIndex, await font.RasterizeGlyphAsync(glyphIndex, Variation, cancellationToken))!;
     }
 
     public Stream GetStream(string name) => throw new NotSupportedException();
 
     public IEnumerable<string> GetAvailableResources()
     {
-        uint codePoint;
-        uint glyphIndex;
+        if (!completionSource.Task.IsCompletedSuccessfully)
+            return Enumerable.Empty<string>();
 
-        (codePoint, glyphIndex) = GetFirstChar();
-
-        while (glyphIndex != 0)
-        {
-            yield return $"{FontName}/{(char)codePoint}";
-            (codePoint, glyphIndex) = GetNextChar(codePoint);
-        }
-
-        unsafe (uint codePoint, uint glyphIndex) GetFirstChar()
-        {
-            if (Face is null)
-                return (0, 0);
-
-            uint glyphIndex, codePoint;
-
-            lock (faceLock)
-                codePoint = (uint)FT_Get_First_Char(Face, &glyphIndex);
-
-            return (codePoint, glyphIndex);
-        }
-
-        unsafe (uint codePoint, uint glyphIndex) GetNextChar(uint prevCodePoint)
-        {
-            if (Face is null)
-                return (0, 0);
-
-            uint glyphIndex, codePoint;
-
-            lock (faceLock)
-                codePoint = (uint)FT_Get_Next_Char(Face, prevCodePoint, &glyphIndex);
-
-            return (codePoint, glyphIndex);
-        }
-    }
-
-    /// <summary>
-    /// An object used by FreeType for reading data.
-    /// </summary>
-    /// <remarks>
-    /// This is a part of the workaround for a bug in FreeTypeSharp. Remove
-    /// this struct and the workaround when the bug is fixed.
-    /// </remarks>
-    /// <seealso href="https://github.com/ryancheung/FreeTypeSharp/issues/31"/> 
-    [StructLayout(LayoutKind.Sequential)]
-    private unsafe struct FTStream
-    {
-        public nint _base;
-        public CULong size;
-        public CULong pos;
-        public FTStreamDesc descriptor;
-        public FTStreamDesc pathname;
-        public delegate* unmanaged<FTStream*, CULong, byte*, CULong, CULong> read;
-        public delegate* unmanaged<FTStream*, void> close;
-        public nint memory;
-        public nint cursor;
-        public nint limit;
-    };
-
-    /// <summary>
-    /// A union type used to store a handle to the input stream.
-    /// </summary>
-    /// <remarks>
-    /// This is a part of the workaround for a bug in FreeTypeSharp. Remove
-    /// this struct and the workaround when the bug is fixed.
-    /// </remarks>
-    /// <seealso href="https://github.com/ryancheung/FreeTypeSharp/issues/31"/> 
-    [StructLayout(LayoutKind.Explicit)]
-    private unsafe struct FTStreamDesc
-    {
-        [FieldOffset(0)] public CLong value;
-        [FieldOffset(0)] public nint pointer;
-    }
-
-    /// <summary>
-    /// Data used to lay out and render a character.
-    /// </summary>
-    protected class GlyphMetrics
-    {
-        /// <summary>
-        /// The horizontal bearing of the character in pixels.
-        /// </summary>
-        public required float XOffset { get; init; }
-
-        /// <summary>
-        /// The vertical offset of the character in pixels, relative to the top of the glyph bounding box.
-        /// </summary>
-        /// <remarks>
-        /// This is the semantics used by BMFont and osu!framework, different from FreeType where the
-        /// vertical bearing is relative to the baseline.
-        /// </remarks>
-        public required float YOffset { get; init; }
-
-        /// <summary>
-        /// The horizontal advance of the character in pixels.
-        /// </summary>
-        public required float Advance { get; init; }
+        return Font.GetAvailableChars().Select(c => $@"{FontName}/{c}");
     }
 }
