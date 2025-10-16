@@ -75,7 +75,7 @@ namespace Sdf
                             Text = TEST_STRING,
                             Anchor = Anchor.TopCentre,
                             Origin = Anchor.TopCentre,
-                            Font = FontUsage.Default.With(size: 40, weight: "Regular"),
+                            Font = FontUsage.Default.With(size: 40),
                         },
                         new SdfSpriteText
                         {
@@ -111,7 +111,7 @@ namespace Sdf
                             Anchor = Anchor.TopCentre,
                             Origin = Anchor.TopCentre,
                             Colour = Colour4.Black,
-                            Font = FontUsage.Default.With(size: 40, weight: "Regular"),
+                            Font = FontUsage.Default.With(size: 40),
                         },
                         new SdfSpriteText
                         {
@@ -119,14 +119,21 @@ namespace Sdf
                             Anchor = Anchor.TopCentre,
                             Origin = Anchor.TopCentre,
                             Colour = Colour4.White.Opacity(64),
-                            Font = FontUsage.Default.With(size: 40, weight: "Regular"),
+                            Font = FontUsage.Default.With(size: 40),
                         },
                         new SdfSpriteText
                         {
                             Text = TEST_STRING,
                             Anchor = Anchor.TopCentre,
                             Origin = Anchor.TopCentre,
-                            Font = FontUsage.Default.With(size: 16, weight: "Regular"),
+                            Font = FontUsage.Default.With(size: 16),
+                        },
+                        new SdfSpriteText
+                        {
+                            Text = TEST_STRING,
+                            Anchor = Anchor.TopCentre,
+                            Origin = Anchor.TopCentre,
+                            Font = FontUsage.Default.With(size: 16, italics: true),
                         },
                         new SdfSpriteText
                         {

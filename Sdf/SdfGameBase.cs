@@ -56,6 +56,9 @@ namespace Sdf
             {
                 NamedInstance = "Exo2-Regular",
             }));
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2-Italic", new()
+            {
+            }));
             Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc", new()
             {
                 NamedInstance = "NotoSansCJKsc-Regular"

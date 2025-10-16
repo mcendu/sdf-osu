@@ -84,6 +84,8 @@ public class OutlineFont : IDisposable
 
     private readonly TaskCompletionSource<nint> completionSource = new TaskCompletionSource<nint>();
 
+    private readonly Dictionary<uint, string> names = new();
+
     private readonly Dictionary<string, uint> axes = new();
 
     private readonly Dictionary<string, uint> namedInstances = new();
@@ -333,7 +335,6 @@ public class OutlineFont : IDisposable
 
         // load SFNT names
         FT_SfntName_ nameEntry = new();
-        Dictionary<uint, string> names = new();
         uint nameCount = FT_Get_Sfnt_Name_Count(face);
 
         for (uint i = 0; i < nameCount; ++i)
@@ -357,8 +358,11 @@ public class OutlineFont : IDisposable
             }
             else
             {
+                // failing that, generate one according to
+                // <https://download.macromedia.com/pub/developer/opentype/tech-notes/5902.AdobePSNameGeneration.html>.
+                string fontName = names.GetValueOrDefault(16u) ?? names[1];
                 var s = Alphanumerify(names[namedStyle->strid]);
-                namedInstances.Add($@"{names[25]}-{Alphanumerify(s)}", i);
+                namedInstances.Add($@"{Alphanumerify(fontName)}-{s}", i);
             }
         }
 
