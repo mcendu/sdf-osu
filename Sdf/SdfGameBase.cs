@@ -27,6 +27,7 @@ using osu.Framework.IO.Stores;
 using osuTK;
 using Sdf.IO.Stores;
 using Sdf.Resources;
+using System.Text;
 
 namespace Sdf
 {
@@ -47,106 +48,68 @@ namespace Sdf
         [BackgroundDependencyLoader]
         private void load()
         {
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+
             Resources.AddStore(new DllResourceStore(typeof(SdfResources).Assembly));
 
-            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2-VariableFont_wght")
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2", new()
             {
-                FontName = "Exo2-Regular",
-                Variation = new()
-                {
-                    NamedInstance = 4,
-                }
-            });
-            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc-VF")
+                NamedInstance = "Exo2-Regular",
+            }));
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc", new()
             {
-                FontName = "NotoSansCJKsc-Regular",
-                Variation = new()
-                {
-                    NamedInstance = 4,
-                }
-            });
+                NamedInstance = "NotoSansCJKsc-Regular"
+            }));
 
-            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2-VariableFont_wght")
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2", new()
             {
-                FontName = "Exo2-Thin",
-                Variation = new()
-                {
-                    NamedInstance = 1,
-                }
-            });
-            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2-VariableFont_wght")
+                NamedInstance = "Exo2-Thin",
+            }));
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2", new()
             {
-                FontName = "Exo2-Light",
-                Variation = new()
-                {
-                    NamedInstance = 3,
-                }
-            });
-            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2-VariableFont_wght")
+                NamedInstance = "Exo2-Light",
+            }));
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2", new()
             {
-                FontName = "Exo2-Medium",
-                Variation = new()
-                {
-                    NamedInstance = 5,
-                }
-            });
-            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2-VariableFont_wght")
+                NamedInstance = "Exo2-Medium",
+            }));
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2", new()
             {
-                FontName = "Exo2-Bold",
-                Variation = new()
-                {
-                    NamedInstance = 7,
-                }
-            });
-            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2-VariableFont_wght")
+                NamedInstance = "Exo2-Bold",
+            }));
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2", new()
             {
-                FontName = "Exo2-Black",
-                Variation = new()
-                {
-                    NamedInstance = 9,
-                }
-            });
+                Axes = new Dictionary<string, double> { { "wght", 800 } },
+            }));
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2", new()
+            {
+                NamedInstance = "Exo2-Black",
+            }));
 
-            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc-VF")
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc", new()
             {
-                FontName = "NotoSansCJKsc-Thin",
-                Variation = new()
-                {
-                    NamedInstance = 1,
-                }
-            });
-            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc-VF")
+                NamedInstance = "NotoSansCJKsc-Thin",
+            }));
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc", new()
             {
-                FontName = "NotoSansCJKsc-Light",
-                Variation = new()
-                {
-                    NamedInstance = 2,
-                }
-            });
-            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc-VF")
+                NamedInstance = "NotoSansCJKsc-Light",
+            }));
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc", new()
             {
-                FontName = "NotoSansCJKsc-Medium",
-                Variation = new()
-                {
-                    NamedInstance = 5,
-                }
-            });
-            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc-VF")
+                NamedInstance = "NotoSansCJKsc-Medium",
+            }));
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc", new()
             {
-                FontName = "NotoSansCJKsc-Bold",
-                Variation = new()
-                {
-                    NamedInstance = 6,
-                }
-            });
-            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc-VF")
+                NamedInstance = "NotoSansCJKsc-Bold",
+            }));
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc", new()
             {
-                FontName = "NotoSansCJKsc-Black",
-                Variation = new()
-                {
-                    NamedInstance = 7,
-                }
-            });
+                Axes = new Dictionary<string, double> { { "wght", 800 } },
+            }));
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc", new()
+            {
+                NamedInstance = "NotoSansCJKsc-Black",
+            }));
         }
     }
 }

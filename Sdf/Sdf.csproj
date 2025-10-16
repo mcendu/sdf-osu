@@ -9,6 +9,7 @@
     <PackageReference Include="FreeTypeSharp" Version="3.0.1" />
     <PackageReference Include="ppy.osu.Framework" Version="2025.1008.0" />
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.11" />
+    <PackageReference Include="System.Text.Encoding.CodePages" Version="9.0.10" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Sdf.Resources\Sdf.Resources.csproj" />

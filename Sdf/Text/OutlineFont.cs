@@ -21,12 +21,14 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 using System.Runtime.InteropServices;
+using System.Text;
 using FreeTypeSharp;
 using osu.Framework.Extensions;
 using osu.Framework.Graphics.Textures;
 using osu.Framework.IO.Stores;
 using osu.Framework.Logging;
 using osu.Framework.Text;
+using Sdf.Text.FreeType;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
@@ -37,6 +39,7 @@ using static FreeTypeSharp.FT_Kerning_Mode_;
 using static FreeTypeSharp.FT_LOAD;
 using static FreeTypeSharp.FT_Render_Mode_;
 using static Sdf.Text.FreeType.MM;
+using static Sdf.Text.FreeType.Sfnt;
 
 namespace Sdf.Text;
 
@@ -80,6 +83,10 @@ public class OutlineFont : IDisposable
     private readonly Lock faceLock = new Lock();
 
     private readonly TaskCompletionSource<nint> completionSource = new TaskCompletionSource<nint>();
+
+    private readonly Dictionary<string, uint> axes = new();
+
+    private readonly Dictionary<string, uint> namedInstances = new();
 
     /// <summary>
     /// The name of the underlying asset.
@@ -218,6 +225,11 @@ public class OutlineFont : IDisposable
 
                 if (error != 0) throw new FreeTypeException(error);
 
+                if (((FT_FACE_FLAG)face->face_flags).HasFlag(FT_FACE_FLAG_MULTIPLE_MASTERS))
+                {
+                    LoadVariableFontData(face);
+                }
+
                 completionSource.SetResult((nint)face);
             }
             catch (Exception)
@@ -296,6 +308,148 @@ public class OutlineFont : IDisposable
 
         // FreeType allows a `FT_Stream *` to free itself here.
         NativeMemory.Free(ftStream);
+    }
+
+    private unsafe void LoadVariableFontData(FT_FaceRec_* face)
+    {
+        FT_MM_Var_* amaster;
+        FT_Error error = FT_Get_MM_Var(face, &amaster);
+
+        if (error != 0) throw new FreeTypeException(error);
+
+        Span<byte> tag = stackalloc byte[4];
+
+        // enumerate variable axes
+        for (uint i = 0; i < amaster->num_axis; ++i)
+        {
+            FT_Var_Axis_* axis = &amaster->axis[i];
+            nuint t = axis->tag.Value;
+            tag[0] = (byte)(t >> 24);
+            tag[1] = (byte)(t >> 16);
+            tag[2] = (byte)(t >> 8);
+            tag[3] = (byte)t;
+            axes.Add(Encoding.ASCII.GetString(tag), i);
+        }
+
+        // load SFNT names
+        FT_SfntName_ nameEntry = new();
+        Dictionary<uint, string> names = new();
+        uint nameCount = FT_Get_Sfnt_Name_Count(face);
+
+        for (uint i = 0; i < nameCount; ++i)
+        {
+            error = FT_Get_Sfnt_Name(face, i, &nameEntry);
+
+            if (error != 0) throw new FreeTypeException(error);
+
+            names[nameEntry.name_id] = DecodeNameEntry(&nameEntry);
+        }
+
+        // get names for named styles
+        for (uint i = 0; i < amaster->num_namedstyles; ++i)
+        {
+            FT_Var_Named_Style_* namedStyle = &amaster->namedstyle[i];
+
+            if (namedStyle->psid != 0xffff)
+            {
+                // try to get the instance's PostScript name first
+                namedInstances.Add(names[namedStyle->psid], i);
+            }
+            else
+            {
+                var s = Alphanumerify(names[namedStyle->strid]);
+                namedInstances.Add($@"{names[25]}-{Alphanumerify(s)}", i);
+            }
+        }
+
+        lock (libraryLock)
+        {
+            FT_Done_MM_Var(library, amaster);
+        }
+
+        string Alphanumerify(string s)
+        {
+            StringBuilder result = new();
+
+            foreach (char c in s)
+            {
+                if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'))
+                    result.Append(c);
+            }
+
+            return result.ToString();
+        }
+    }
+
+    /// <summary>
+    /// Decode a name entry string.
+    /// </summary>
+    /// <param name="nameEntry">The name entry to decode.</param>
+    /// <returns>The name entry in UTF-16.</returns>
+    /// <exception cref="InvalidDataException">
+    /// The name entry encoding cannot be recognized.
+    /// </exception>
+    /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/name"/> 
+    private static unsafe string DecodeNameEntry(FT_SfntName_* nameEntry)
+    {
+        var span = new ReadOnlySpan<byte>(nameEntry->_string, (int)nameEntry->string_len);
+
+        switch ((TT_PLATFORM)nameEntry->platform_id)
+        {
+            case TT_PLATFORM.APPLE_UNICODE:
+                return Encoding.BigEndianUnicode.GetString(span);
+            case TT_PLATFORM.MACINTOSH:
+                // Bail out and assume everything is Mac OS Roman.
+                // TODO: Properly support other encodings.
+                return Encoding.GetEncoding("macintosh").GetString(span);
+            case TT_PLATFORM.MICROSOFT:
+                switch ((TT_MS_ID)nameEntry->encoding_id)
+                {
+                    case TT_MS_ID.PRC:
+                        return Encoding.GetEncoding(936).GetString(span);
+                    case TT_MS_ID.BIG_5:
+                        return Encoding.GetEncoding(950).GetString(span);
+                    case TT_MS_ID.WANSUNG:
+                        return Encoding.GetEncoding(949).GetString(span);
+                    default:
+                        return Encoding.BigEndianUnicode.GetString(span);
+                }
+            default:
+                // The rest only applies to charmaps, so panic.
+                throw new InvalidDataException();
+        }
+    }
+    
+    internal RawFontVariation? DecodeFontVariation(FontVariation? variation)
+    {
+        if (variation is null)
+            return null;
+
+        uint rawNamedInstance = 0;
+        CLong[]? rawAxes = null;
+
+        if (variation.Axes is not null)
+        {
+            rawAxes = new CLong[axes.Count];
+
+            foreach (var (axis, value) in variation.Axes)
+            {
+                if (axes.TryGetValue(axis, out uint index))
+                    rawAxes[index] = new CLong((nint)Math.Round(value * 65536));
+            }
+        }
+        else if (variation.NamedInstance is not null)
+        {
+            // FreeType reserves instance 0 for the default instance; the actual
+            // named instance passed into FreeType starts at 1.
+            rawNamedInstance = namedInstances[variation.NamedInstance] + 1;
+        }
+
+        return new RawFontVariation
+        {
+            NamedInstance = rawNamedInstance,
+            Axes = rawAxes,
+        };
     }
 
     /// <summary>
@@ -411,7 +565,7 @@ public class OutlineFont : IDisposable
     /// This method is not thread safe. The caller is responsible for locking
     /// <see cref="faceLock"/> before calling.
     /// </remarks>
-    private static unsafe void SetVariation(FT_FaceRec_* face, FontVariation? variation)
+    private static unsafe void SetVariation(FT_FaceRec_* face, RawFontVariation? variation)
     {
         if (variation is null)
         {
@@ -457,7 +611,7 @@ public class OutlineFont : IDisposable
     /// </param>
     /// <returns>A new <see cref="CharacterGlyph"/> containing the glyph metrics.</returns>
     /// <exception cref="FreeTypeException">The metrics fails to load.</exception>
-    public unsafe CharacterGlyph? GetMetrics(uint glyphIndex, FontVariation? variation)
+    public unsafe CharacterGlyph? GetMetrics(uint glyphIndex, RawFontVariation? variation)
     {
         if (!completionSource.Task.IsCompletedSuccessfully)
             return null;
@@ -500,7 +654,7 @@ public class OutlineFont : IDisposable
     /// used. This parameter must be null if the font is static.
     /// </param>
     /// <returns>The amount of kerning.</returns>
-    public unsafe int GetKerning(uint left, uint right, FontVariation? variation)
+    public unsafe int GetKerning(uint left, uint right, RawFontVariation? variation)
     {
         if (!completionSource.Task.IsCompletedSuccessfully)
             return 0;
@@ -530,7 +684,7 @@ public class OutlineFont : IDisposable
     /// </param>
     /// <returns>The rasterized glyph suitable for rendering.</returns>
     /// <exception cref="FreeTypeException">Rasterization of the texture failed.</exception>
-    public unsafe TextureUpload? RasterizeGlyph(uint glyphIndex, FontVariation? variation)
+    public unsafe TextureUpload? RasterizeGlyph(uint glyphIndex, RawFontVariation? variation)
     {
         if (!completionSource.Task.IsCompletedSuccessfully)
             return null;
@@ -549,14 +703,14 @@ public class OutlineFont : IDisposable
     /// <returns>The rasterized glyph suitable for rendering.</returns>
     /// <exception cref="AggregateException">The font failed to load.</exception>
     /// <exception cref="FreeTypeException">Rasterization of the texture failed.</exception>
-    public async Task<TextureUpload> RasterizeGlyphAsync(uint glyphIndex, FontVariation? variation, CancellationToken cancellationToken = default)
+    public async Task<TextureUpload> RasterizeGlyphAsync(uint glyphIndex, RawFontVariation? variation, CancellationToken cancellationToken = default)
     {
         var face = await completionSource.Task.ConfigureAwait(false);
 
         return await Task.Run(() => RasterizeGlyphInner(face, glyphIndex, variation), cancellationToken);
     }
 
-    private unsafe TextureUpload RasterizeGlyphInner(nint ptr, uint glyphIndex, FontVariation? variation)
+    private unsafe TextureUpload RasterizeGlyphInner(nint ptr, uint glyphIndex, RawFontVariation? variation)
     {
         Image<Rgba32> image;
         FT_Error error;

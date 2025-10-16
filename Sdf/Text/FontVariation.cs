@@ -22,6 +22,8 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Sdf.Text;
 
@@ -37,19 +39,93 @@ public class FontVariation
     /// If both <see cref="NamedInstance"/> and <see cref="Axes"/> are set,
     /// only <see cref="Axes"/> is used. 
     /// </remarks>
-    public uint NamedInstance { get; init; }
+    public string? NamedInstance { get; init; }
 
     /// <summary>
     /// The configuration of the variable font.
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// Numbers are in 16.16 fixed point format.
-    /// </para>
-    /// <para>
     /// If both <see cref="NamedInstance"/> and <see cref="Axes"/> are set,
     /// only <see cref="Axes"/> is used.
-    /// </para>
     /// </remarks>
-    public CLong[]? Axes { get; init; }
+    public IEnumerable<KeyValuePair<string, double>>? Axes { get; init; }
+
+    /// <summary>
+    /// Generate a suitable font name suffix for this configuration.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// If both <see cref="NamedInstance"/> and <see cref="Axes"/> are set,
+    /// only <see cref="Axes"/> is used. 
+    /// </para>
+    /// <para>
+    /// The name generation is based on Adobe TechNote #5902, 'Generating
+    /// PostScript Names for Fonts Using OpenType Font Variations'. Notable
+    /// differences are:
+    /// </para>
+    /// <list type="bullet">
+    /// <item>
+    /// <description>
+    /// When the instance is an arbitrary instance, an axis value descriptor
+    /// starts with <c>-</c> instead of <c>_</c> to stay compatible with
+    /// osu!framework semantics.
+    /// </description>
+    /// </item>
+    /// </list>
+    /// <seealso href="https://download.macromedia.com/pub/developer/opentype/tech-notes/5902.AdobePSNameGeneration.html"/>
+    /// </remarks>
+    public string GenerateInstanceName(string baseName)
+    {
+        if (Axes is not null)
+        {
+            StringBuilder instanceName = new(baseName);
+            List<HashedAxisParameter> hashedAxes = new();
+
+            foreach (var (axis, value) in Axes)
+            {
+                // add parameter for hashing
+                HashedAxisParameter parameter = new();
+
+                unsafe
+                {
+                    NativeMemory.Fill(parameter.axis, 4, 0x20);
+                    Encoding.UTF8.GetBytes(axis, new Span<byte>(parameter.axis, 4));
+                }
+
+                parameter.value = (int)Math.Round(value * 65536.0);
+                hashedAxes.Add(parameter);
+
+                // compute ASCII representation of parameter
+                double effectiveValue = parameter.value / 65536.0;
+
+                instanceName.Append($@"-{effectiveValue:0.#####}{axis}");
+
+                if (instanceName.Length > 128)
+                {
+                    // The last resort string is constructed from a SHA-256 hash
+                    // if the string form of the parameters gets too long.
+                    ReadOnlySpan<byte> hashedData = MemoryMarshal.AsBytes(CollectionsMarshal.AsSpan(hashedAxes));
+                    return $@"{baseName}-{Convert.ToHexStringLower(SHA256.HashData(hashedData))}";
+                }
+            }
+
+            return instanceName.ToString();
+        
+        }
+        else if (NamedInstance is not null)
+        {
+            return NamedInstance;
+        }
+        else
+        {
+            return baseName;
+        }
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private unsafe struct HashedAxisParameter
+    {
+        public fixed byte axis[4];
+        public int value;
+    }
 }

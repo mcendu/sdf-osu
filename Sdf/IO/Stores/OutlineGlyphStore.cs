@@ -53,15 +53,17 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
     /// </summary>
     public int FaceIndex { private get; init; } = 0;
 
-    public FontVariation? Variation { private get; init; }
+    private RawFontVariation? RawVariation { get; set; }
+
+    public FontVariation? Variation { get; }
 
     protected readonly ResourceStore<byte[]> Store;
 
-    public string FontName { get; init; }
+    public string FontName { get; }
 
     public float? Baseline => OutlineFont.BASELINE;
 
-    public OutlineGlyphStore(ResourceStore<byte[]> store, string? assetName = null)
+    public OutlineGlyphStore(ResourceStore<byte[]> store, string assetName, FontVariation? variation = null)
     {
         Store = new ResourceStore<byte[]>(store);
 
@@ -71,8 +73,10 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
         Store.AddExtension("ttc");
 
         AssetName = assetName;
+        Variation = variation;
 
-        FontName = assetName?.Split('/').Last() ?? string.Empty;
+        var fileName = assetName.Split('/').Last();
+        FontName = variation?.GenerateInstanceName(fileName) ?? fileName;
     }
 
     ~OutlineGlyphStore()
@@ -104,6 +108,7 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
         try
         {
             await font.LoadAsync();
+            RawVariation = font.DecodeFontVariation(Variation);
         }
         finally
         {
@@ -118,7 +123,7 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
 
     public CharacterGlyph? Get(char c)
     {
-        var metrics = Font.GetMetrics(Font.GetGlyphIndex(c), Variation);
+        var metrics = Font.GetMetrics(Font.GetGlyphIndex(c), RawVariation);
 
         if (metrics is null)
             return null;
@@ -128,7 +133,7 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
 
     public int GetKerning(char left, char right)
     {
-        return Font.GetKerning(Font.GetGlyphIndex(left), Font.GetGlyphIndex(right), Variation);
+        return Font.GetKerning(Font.GetGlyphIndex(left), Font.GetGlyphIndex(right), RawVariation);
     }
 
     Task<CharacterGlyph> IResourceStore<CharacterGlyph>.GetAsync(string name, CancellationToken cancellationToken)
@@ -144,7 +149,7 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
         char c = name.Last();
         uint glyphIndex = Font.GetGlyphIndex(c);
 
-        return Font.RasterizeGlyph(glyphIndex, Variation)!;
+        return Font.RasterizeGlyph(glyphIndex, RawVariation)!;
     }
 
     public async Task<TextureUpload> GetAsync(string name, CancellationToken cancellationToken = default)
@@ -156,7 +161,7 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
         var font = await completionSource.Task.ConfigureAwait(false);
         uint glyphIndex = await font.GetGlyphIndexAsync(c);
 
-        return await font.RasterizeGlyphAsync(glyphIndex, Variation, cancellationToken);
+        return await font.RasterizeGlyphAsync(glyphIndex, RawVariation, cancellationToken);
     }
 
     public Stream GetStream(string name) => throw new NotSupportedException();

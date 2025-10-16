@@ -34,41 +34,40 @@ internal static unsafe partial class MM
     [StructLayout(LayoutKind.Sequential)]
     public struct FT_Var_Axis_
     {
-        byte* name;
-        CLong minimum;
-        CLong def;
-        CLong maximum;
-        CULong tag;
-        uint strid;
+        public byte* name;
+        public CLong minimum;
+        public CLong def;
+        public CLong maximum;
+        public CULong tag;
+        public uint strid;
     }
 
     [StructLayout(LayoutKind.Sequential)]
     public struct FT_Var_Named_Style_
     {
-        CLong* coords;
-        uint strid;
-        uint psid;
+        public CLong* coords;
+        public uint strid;
+        public uint psid;
     }
 
     [StructLayout(LayoutKind.Sequential)]
     public struct FT_MM_Var_
     {
-        uint num_axis;
-        uint num_designs;
-        uint num_namedstyles;
-        FT_Var_Axis_* axis;
-        FT_Var_Named_Style_* namedstyle;
-
+        public uint num_axis;
+        public uint num_designs;
+        public uint num_namedstyles;
+        public FT_Var_Axis_* axis;
+        public FT_Var_Named_Style_* namedstyle;
     }
 
-    [LibraryImport("freetype")]
+    [LibraryImport(FT.LibName)]
     public static partial FT_Error FT_Get_MM_Var(FT_FaceRec_* face, FT_MM_Var_** amaster);
-    [LibraryImport("freetype")]
-    public static partial FT_Error FT_Done_MM_Var(FT_FaceRec_* face, FT_MM_Var_* amaster);
-    [LibraryImport("freetype")]
+    [LibraryImport(FT.LibName)]
+    public static partial FT_Error FT_Done_MM_Var(FT_LibraryRec_* library, FT_MM_Var_* amaster);
+    [LibraryImport(FT.LibName)]
     public static partial FT_Error FT_Set_Var_Design_Coordinates(FT_FaceRec_* face, uint num_coords, CLong* coords);
-    [LibraryImport("freetype")]
+    [LibraryImport(FT.LibName)]
     public static partial FT_Error FT_Set_Named_Instance(FT_FaceRec_* face, uint instance_index);
-    [LibraryImport("freetype")]
+    [LibraryImport(FT.LibName)]
     public static partial FT_Error FT_Get_Default_Named_Instance(FT_FaceRec_* face, uint* instance_index);
 }
