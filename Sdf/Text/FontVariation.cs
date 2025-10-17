@@ -114,7 +114,9 @@ public class FontVariation
         }
         else if (NamedInstance is not null)
         {
-            return NamedInstance;
+            // strip occurences of 'Regular' here
+            // TODO: add special handling of the 'Regular' weight at the osu!framework level.
+            return NamedInstance.Replace("Regular", string.Empty).TrimEnd('-');
         }
         else
         {

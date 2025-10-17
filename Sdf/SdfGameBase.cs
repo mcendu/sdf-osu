@@ -56,9 +56,9 @@ namespace Sdf
             var exo2Italic = new OutlineFontStore(Host.Renderer, Resources, @"Fonts/Exo2Italic");
             var notoSansCJKsc = new OutlineFontStore(Host.Renderer, Resources, @"Fonts/NotoSansCJKsc");
 
+            exo2.AddInstance("Exo2-Regular");
             exo2.AddInstance("Exo2-Thin");
             exo2.AddInstance("Exo2-Light");
-            exo2.AddInstance("Exo2-Regular");
             exo2.AddInstance("Exo2-Medium");
             exo2.AddInstance("Exo2-Bold");
             exo2.AddInstance("Exo2-Black");
@@ -66,9 +66,9 @@ namespace Sdf
             exo2Italic.AddInstance("Exo2-Italic");
             exo2Italic.AddInstance("Exo2-BoldItalic");
 
+            notoSansCJKsc.AddInstance("NotoSansCJKsc-Regular");
             notoSansCJKsc.AddInstance("NotoSansCJKsc-Thin");
             notoSansCJKsc.AddInstance("NotoSansCJKsc-Light");
-            notoSansCJKsc.AddInstance("NotoSansCJKsc-Regular");
             notoSansCJKsc.AddInstance("NotoSansCJKsc-Medium");
             notoSansCJKsc.AddInstance("NotoSansCJKsc-Bold");
             notoSansCJKsc.AddInstance("NotoSansCJKsc-Black");
