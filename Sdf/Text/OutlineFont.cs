@@ -28,7 +28,6 @@ using osu.Framework.Graphics.Textures;
 using osu.Framework.IO.Stores;
 using osu.Framework.Logging;
 using osu.Framework.Text;
-using Sdf.Text.FreeType;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
@@ -38,8 +37,6 @@ using static FreeTypeSharp.FT_FACE_FLAG;
 using static FreeTypeSharp.FT_Kerning_Mode_;
 using static FreeTypeSharp.FT_LOAD;
 using static FreeTypeSharp.FT_Render_Mode_;
-using static Sdf.Text.FreeType.MM;
-using static Sdf.Text.FreeType.Sfnt;
 
 namespace Sdf.Text;
 
@@ -221,7 +218,7 @@ public class OutlineFont : IDisposable
 
                 lock (libraryLock)
                 {
-                    error = FT_Open_Face(library, &openArgs, FaceIndex, &face);
+                    error = FT_Open_Face(library, &openArgs, new CLong(FaceIndex), &face);
                 }
 
                 if (error != 0) throw new FreeTypeException(error);
@@ -231,7 +228,7 @@ public class OutlineFont : IDisposable
 
                 if (error != 0) throw new FreeTypeException(error);
 
-                if (((FT_FACE_FLAG)face->face_flags).HasFlag(FT_FACE_FLAG_MULTIPLE_MASTERS))
+                if (((FT_FACE_FLAG)face->face_flags.Value).HasFlag(FT_FACE_FLAG_MULTIPLE_MASTERS))
                 {
                     LoadVariableFontData(face);
                 }
@@ -404,24 +401,24 @@ public class OutlineFont : IDisposable
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/name"/> 
     private static unsafe string DecodeNameEntry(FT_SfntName_* nameEntry)
     {
-        var span = new ReadOnlySpan<byte>(nameEntry->_string, (int)nameEntry->string_len);
+        var span = new ReadOnlySpan<byte>(nameEntry->@string, (int)nameEntry->string_len);
 
-        switch ((TT_PLATFORM)nameEntry->platform_id)
+        switch (nameEntry->platform_id)
         {
-            case TT_PLATFORM.APPLE_UNICODE:
+            case TT_PLATFORM_APPLE_UNICODE:
                 return Encoding.BigEndianUnicode.GetString(span);
-            case TT_PLATFORM.MACINTOSH:
+            case TT_PLATFORM_MACINTOSH:
                 // Bail out and assume everything is Mac OS Roman.
                 // TODO: Properly support other encodings.
                 return Encoding.GetEncoding("macintosh").GetString(span);
-            case TT_PLATFORM.MICROSOFT:
-                switch ((TT_MS_ID)nameEntry->encoding_id)
+            case TT_PLATFORM_MICROSOFT:
+                switch (nameEntry->encoding_id)
                 {
-                    case TT_MS_ID.PRC:
+                    case TT_MS_ID_PRC:
                         return Encoding.GetEncoding(936).GetString(span);
-                    case TT_MS_ID.BIG_5:
+                    case TT_MS_ID_BIG_5:
                         return Encoding.GetEncoding(950).GetString(span);
-                    case TT_MS_ID.WANSUNG:
+                    case TT_MS_ID_WANSUNG:
                         return Encoding.GetEncoding(949).GetString(span);
                     default:
                         return Encoding.BigEndianUnicode.GetString(span);
@@ -524,7 +521,7 @@ public class OutlineFont : IDisposable
 
         lock (faceLock)
         {
-            return FT_Get_Char_Index(Face, (uint)c);
+            return FT_Get_Char_Index(Face, new CULong((uint)c));
         }
     }
 
@@ -548,7 +545,7 @@ public class OutlineFont : IDisposable
         {
             lock (faceLock)
             {
-                return FT_Get_Char_Index((FT_FaceRec_*)face, (uint)c);
+                return FT_Get_Char_Index((FT_FaceRec_*)face, new CULong((nuint)c));
             }
         }
     }
@@ -583,7 +580,7 @@ public class OutlineFont : IDisposable
         if (variation is null)
         {
             // This check is needed to support non-variable fonts.
-            if (((FT_FACE_FLAG)face->face_flags).HasFlag(FT_FACE_FLAG_MULTIPLE_MASTERS))
+            if (((FT_FACE_FLAG)face->face_flags.Value).HasFlag(FT_FACE_FLAG_MULTIPLE_MASTERS))
             {
                 uint defaultInstance;
                 var error = FT_Get_Default_Named_Instance(face, &defaultInstance);
@@ -640,9 +637,9 @@ public class OutlineFont : IDisposable
         {
             SetVariation(Face, variation);
             error = FT_Load_Glyph(Face, glyphIndex, FT_LOAD_NO_BITMAP | FT_LOAD_NO_HINTING);
-            horiBearingX = Face->glyph->metrics.horiBearingX;
-            horiBearingY = Face->glyph->metrics.horiBearingY;
-            horiAdvance = Face->glyph->metrics.horiAdvance;
+            horiBearingX = Face->glyph->metrics.horiBearingX.Value;
+            horiBearingY = Face->glyph->metrics.horiBearingY.Value;
+            horiAdvance = Face->glyph->metrics.horiAdvance.Value;
         }
 
         if (error != 0)
@@ -688,7 +685,7 @@ public class OutlineFont : IDisposable
         if (error != 0) return 0;
 
         // osu!framework only supports horizontal kerning in integer values.
-        return (int)kerning.x / 64;
+        return (int)kerning.x.Value / 64;
     }
 
     /// <summary>
@@ -800,7 +797,7 @@ public class OutlineFont : IDisposable
             uint glyphIndex, codePoint;
 
             lock (faceLock)
-                codePoint = (uint)FT_Get_First_Char(Face, &glyphIndex);
+                codePoint = (uint)FT_Get_First_Char(Face, &glyphIndex).Value;
 
             return (codePoint, glyphIndex);
         }
@@ -813,7 +810,7 @@ public class OutlineFont : IDisposable
             uint glyphIndex, codePoint;
 
             lock (faceLock)
-                codePoint = (uint)FT_Get_Next_Char(Face, prevCodePoint, &glyphIndex);
+                codePoint = (uint)FT_Get_Next_Char(Face, new CULong(prevCodePoint), &glyphIndex).Value;
 
             return (codePoint, glyphIndex);
         }
