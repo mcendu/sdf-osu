@@ -26,6 +26,7 @@ using FreeTypeSharp;
 using osu.Framework.Extensions;
 using osu.Framework.Graphics.Textures;
 using osu.Framework.IO.Stores;
+using osu.Framework.Logging;
 using osu.Framework.Text;
 using Sdf.Text.FreeType;
 using SixLabors.ImageSharp;
@@ -90,7 +91,9 @@ public class OutlineFont : IDisposable
     /// <summary>
     /// The name of the underlying asset.
     /// </summary>
-    public string AssetName { get; }
+    public string AssetPath { get; }
+
+    public string AssetName => AssetPath.Split('/').Last();
 
     /// <summary>
     /// The index of the face to use.
@@ -135,7 +138,7 @@ public class OutlineFont : IDisposable
         Store.AddExtension("woff");
         Store.AddExtension("ttc");
 
-        AssetName = assetName;
+        AssetPath = assetName;
         FaceIndex = faceIndex;
     }
 
@@ -177,7 +180,7 @@ public class OutlineFont : IDisposable
 
         try
         {
-            Stream? s = Store.GetStream(AssetName) ?? throw new FileNotFoundException();
+            Stream? s = Store.GetStream(AssetPath) ?? throw new FileNotFoundException();
             var handle = GCHandle.Alloc(s);
             FT_FaceRec_* face = null;
             FT_StreamRec_* ftStream = null;
@@ -343,6 +346,8 @@ public class OutlineFont : IDisposable
             nameTable[nameEntry.name_id] = DecodeNameEntry(&nameEntry);
         }
 
+        string fontName = nameTable.GetValueOrDefault(16u) ?? nameTable[1];
+
         // get names for named styles
         for (uint i = 0; i < amaster->num_namedstyles; ++i)
         {
@@ -357,7 +362,6 @@ public class OutlineFont : IDisposable
             {
                 // failing that, generate one according to
                 // <https://download.macromedia.com/pub/developer/opentype/tech-notes/5902.AdobePSNameGeneration.html>.
-                string fontName = nameTable.GetValueOrDefault(16u) ?? nameTable[1];
                 var s = Alphanumerify(nameTable[namedStyle->strid]);
                 namedInstances.Add($@"{Alphanumerify(fontName)}-{s}", i);
             }
@@ -367,6 +371,9 @@ public class OutlineFont : IDisposable
         {
             FT_Done_MM_Var(library, amaster);
         }
+
+        Logger.Log($"Variable axes in {AssetName}: {string.Join(", ", axes.Keys)}", level: LogLevel.Debug);
+        Logger.Log($"Named instances in {AssetName}: {string.Join(", ", namedInstances.Keys)}", level: LogLevel.Debug);
 
         string Alphanumerify(string s)
         {

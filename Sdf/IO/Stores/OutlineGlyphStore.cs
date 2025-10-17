@@ -63,8 +63,7 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>
         Font = font;
         Variation = variation;
 
-        var fileName = font.AssetName.Split('/').Last();
-        FontName = variation?.GenerateInstanceName(fileName) ?? fileName;
+        FontName = variation?.GenerateInstanceName(font.AssetName) ?? font.AssetName;
     }
 
     ~OutlineGlyphStore()
@@ -91,7 +90,7 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>
         }
         catch (Exception e)
         {
-            Logger.Error(e, $"Couldn't load font {FontName} from {Font.AssetName}.");
+            Logger.Error(e, $"Couldn't load font {FontName} from {Font.AssetPath}.");
             throw;
         }
     }
