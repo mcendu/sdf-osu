@@ -51,7 +51,7 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>
 
     public string FontName { get; }
 
-    public float? Baseline => OutlineFont.BASELINE;
+    public float? Baseline => Font.Baseline;
 
     public OutlineGlyphStore(OutlineFont font, string namedInstance)
         : this(font, new FontVariation { NamedInstance = namedInstance })

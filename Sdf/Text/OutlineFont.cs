@@ -58,9 +58,9 @@ public class OutlineFont : IDisposable
     private const int SDF_SPREAD = 8;
 
     /// <summary>
-    /// Hardcoded baseline value for mapping FreeType metrics into BMFont metrics.
+    /// Hardcoded relative baseline position.
     /// </summary>
-    public const float BASELINE = 85.0f;
+    private const float BASELINE = 0.85f;
 
     /// <summary>
     /// An instance of the FreeType library.
@@ -104,6 +104,8 @@ public class OutlineFont : IDisposable
     /// The resolution of the rendered glyphs in pixels per em.
     /// </summary>
     public uint Resolution { get; init; } = 64;
+
+    public float Baseline => Resolution * BASELINE;
 
     protected readonly ResourceStore<byte[]> Store;
 
@@ -155,6 +157,8 @@ public class OutlineFont : IDisposable
 
     protected unsafe virtual void Dispose(bool isDisposing)
     {
+        completionSource.Task.WaitSafely();
+
         if (completionSource.Task.IsCompletedSuccessfully)
         {
             lock (libraryLock)
@@ -513,6 +517,8 @@ public class OutlineFont : IDisposable
     /// </returns>
     public unsafe uint GetGlyphIndex(int c)
     {
+        completionSource.Task.WaitSafely();
+
         if (!completionSource.Task.IsCompletedSuccessfully)
             return 0;
 
@@ -620,6 +626,8 @@ public class OutlineFont : IDisposable
     /// <exception cref="FreeTypeException">The metrics fails to load.</exception>
     public unsafe CharacterGlyph? GetMetrics(uint glyphIndex, RawFontVariation? variation)
     {
+        completionSource.Task.WaitSafely();
+
         if (!completionSource.Task.IsCompletedSuccessfully)
             return null;
 
@@ -644,11 +652,11 @@ public class OutlineFont : IDisposable
 
         // FreeType outputs metric data in 26.6 fixed point. Convert to floating point accordingly.
         float xOffset = (horiBearingX / 64.0f) - SDF_SPREAD;
-        float yOffset = BASELINE - (horiBearingY / 64.0f) - SDF_SPREAD;
+        float yOffset = Baseline - (horiBearingY / 64.0f) - SDF_SPREAD;
         float advance = horiAdvance / 64.0f;
 
         // The noncharacter indicates that the original character is not available.
-        return new CharacterGlyph('\uffff', xOffset, yOffset, advance, BASELINE, null);
+        return new CharacterGlyph('\uffff', xOffset, yOffset, advance, Baseline, null);
     }
 
     /// <summary>
@@ -663,6 +671,8 @@ public class OutlineFont : IDisposable
     /// <returns>The amount of kerning.</returns>
     public unsafe int GetKerning(uint left, uint right, RawFontVariation? variation)
     {
+        completionSource.Task.WaitSafely();
+
         if (!completionSource.Task.IsCompletedSuccessfully)
             return 0;
 
@@ -693,6 +703,8 @@ public class OutlineFont : IDisposable
     /// <exception cref="FreeTypeException">Rasterization of the texture failed.</exception>
     public unsafe TextureUpload? RasterizeGlyph(uint glyphIndex, RawFontVariation? variation)
     {
+        completionSource.Task.WaitSafely();
+
         if (!completionSource.Task.IsCompletedSuccessfully)
             return null;
 
@@ -762,6 +774,8 @@ public class OutlineFont : IDisposable
     /// </summary>
     public IEnumerable<char> GetAvailableChars()
     {
+        completionSource.Task.WaitSafely();
+
         if (!completionSource.Task.IsCompletedSuccessfully) yield break;
 
         uint codePoint;
