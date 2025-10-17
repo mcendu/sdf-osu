@@ -27,6 +27,7 @@ using osu.Framework.IO.Stores;
 using osuTK;
 using Sdf.IO.Stores;
 using Sdf.Resources;
+using Sdf.Text;
 using System.Text;
 
 namespace Sdf
@@ -52,67 +53,26 @@ namespace Sdf
 
             Resources.AddStore(new DllResourceStore(typeof(SdfResources).Assembly));
 
-            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2", new()
-            {
-                NamedInstance = "Exo2-Regular",
-            }));
-            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2-Italic", new()
-            {
-            }));
-            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc", new()
-            {
-                NamedInstance = "NotoSansCJKsc-Regular"
-            }));
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2", "Exo2-Regular"));
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2Italic", "Exo2-Italic"));
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc", "NotoSansCJKsc-Regular"));
 
-            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2", new()
-            {
-                NamedInstance = "Exo2-Thin",
-            }));
-            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2", new()
-            {
-                NamedInstance = "Exo2-Light",
-            }));
-            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2", new()
-            {
-                NamedInstance = "Exo2-Medium",
-            }));
-            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2", new()
-            {
-                NamedInstance = "Exo2-Bold",
-            }));
-            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2", new()
-            {
-                Axes = new Dictionary<string, double> { { "wght", 800 } },
-            }));
-            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2", new()
-            {
-                NamedInstance = "Exo2-Black",
-            }));
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2", "Exo2-Thin"));
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2Italic", "Exo2-ThinItalic"));
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2", "Exo2-Light"));
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2Italic", "Exo2-LightItalic"));
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2", "Exo2-Medium"));
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2Italic", "Exo2-MediumItalic"));
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2", "Exo2-Bold"));
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2Italic", "Exo2-BoldItalic"));
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2", "Exo2-Black"));
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2Italic", "Exo2-BlackItalic"));
 
-            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc", new()
-            {
-                NamedInstance = "NotoSansCJKsc-Thin",
-            }));
-            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc", new()
-            {
-                NamedInstance = "NotoSansCJKsc-Light",
-            }));
-            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc", new()
-            {
-                NamedInstance = "NotoSansCJKsc-Medium",
-            }));
-            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc", new()
-            {
-                NamedInstance = "NotoSansCJKsc-Bold",
-            }));
-            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc", new()
-            {
-                Axes = new Dictionary<string, double> { { "wght", 800 } },
-            }));
-            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc", new()
-            {
-                NamedInstance = "NotoSansCJKsc-Black",
-            }));
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc", "NotoSansCJKsc-Thin"));
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc", "NotoSansCJKsc-Light"));
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc", "NotoSansCJKsc-Medium"));
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc", "NotoSansCJKsc-Bold"));
+            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc", "NotoSansCJKsc-Black"));
         }
     }
 }

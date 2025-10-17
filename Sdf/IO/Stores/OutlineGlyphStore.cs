@@ -42,7 +42,7 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
 
     private TaskCompletionSource<OutlineFont> completionSource = new();
 
-    protected readonly string? AssetName;
+    protected readonly string AssetName;
 
     /// <summary>
     /// The resolution of the distance fields in pixels per em.
@@ -64,15 +64,14 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
 
     public float? Baseline => OutlineFont.BASELINE;
 
+    public OutlineGlyphStore(ResourceStore<byte[]> store, string assetName, string namedInstance)
+        : this(store, assetName, new FontVariation { NamedInstance = namedInstance })
+    {
+    }
+
     public OutlineGlyphStore(ResourceStore<byte[]> store, string assetName, FontVariation? variation = null)
     {
-        Store = new ResourceStore<byte[]>(store);
-
-        Store.AddExtension("ttf");
-        Store.AddExtension("otf");
-        Store.AddExtension("woff");
-        Store.AddExtension("ttc");
-
+        Store = store;
         AssetName = assetName;
         Variation = variation;
 
@@ -101,7 +100,7 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
 
     public async Task LoadFontAsync()
     {
-        var font = new OutlineFont(Store, AssetName ?? throw new ArgumentNullException(), FaceIndex)
+        var font = new OutlineFont(Store, AssetName, FaceIndex)
         {
             Resolution = Resolution,
         };

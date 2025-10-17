@@ -96,13 +96,6 @@ namespace Sdf
                             Text = TEST_STRING,
                             Anchor = Anchor.TopCentre,
                             Origin = Anchor.TopCentre,
-                            Font = FontUsage.Default.With(size: 40, weight: "800wght"),
-                        },
-                        new SdfSpriteText
-                        {
-                            Text = TEST_STRING,
-                            Anchor = Anchor.TopCentre,
-                            Origin = Anchor.TopCentre,
                             Font = FontUsage.Default.With(size: 40, weight: "Black"),
                         },
                         new SdfSpriteText
