@@ -23,6 +23,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 using osu.Framework.Extensions;
 using osu.Framework.Graphics.Textures;
 using osu.Framework.IO.Stores;
+using osu.Framework.Logging;
 using osu.Framework.Text;
 using Sdf.Text;
 using SixLabors.ImageSharp;
@@ -109,6 +110,11 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
         {
             await font.LoadAsync();
             RawVariation = font.DecodeFontVariation(Variation);
+        }
+        catch (Exception e)
+        {
+            Logger.Error(e, $"Couldn't load font {FontName} from {AssetName}.");
+            throw;
         }
         finally
         {

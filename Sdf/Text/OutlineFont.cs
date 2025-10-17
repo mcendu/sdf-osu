@@ -26,7 +26,6 @@ using FreeTypeSharp;
 using osu.Framework.Extensions;
 using osu.Framework.Graphics.Textures;
 using osu.Framework.IO.Stores;
-using osu.Framework.Logging;
 using osu.Framework.Text;
 using Sdf.Text.FreeType;
 using SixLabors.ImageSharp;
@@ -83,8 +82,6 @@ public class OutlineFont : IDisposable
     private readonly Lock faceLock = new Lock();
 
     private readonly TaskCompletionSource<nint> completionSource = new TaskCompletionSource<nint>();
-
-    private readonly Dictionary<uint, string> names = new();
 
     private readonly Dictionary<string, uint> axes = new();
 
@@ -251,7 +248,6 @@ public class OutlineFont : IDisposable
         }
         catch (Exception e)
         {
-            Logger.Error(e, $"Couldn't load font asset from {AssetName}.");
             completionSource.SetException(e);
             throw;
         }
@@ -334,6 +330,7 @@ public class OutlineFont : IDisposable
         }
 
         // load SFNT names
+        Dictionary<uint, string> nameTable = new();
         FT_SfntName_ nameEntry = new();
         uint nameCount = FT_Get_Sfnt_Name_Count(face);
 
@@ -343,7 +340,7 @@ public class OutlineFont : IDisposable
 
             if (error != 0) throw new FreeTypeException(error);
 
-            names[nameEntry.name_id] = DecodeNameEntry(&nameEntry);
+            nameTable[nameEntry.name_id] = DecodeNameEntry(&nameEntry);
         }
 
         // get names for named styles
@@ -354,14 +351,14 @@ public class OutlineFont : IDisposable
             if (namedStyle->psid != 0xffff)
             {
                 // try to get the instance's PostScript name first
-                namedInstances.Add(names[namedStyle->psid], i);
+                namedInstances.Add(nameTable[namedStyle->psid], i);
             }
             else
             {
                 // failing that, generate one according to
                 // <https://download.macromedia.com/pub/developer/opentype/tech-notes/5902.AdobePSNameGeneration.html>.
-                string fontName = names.GetValueOrDefault(16u) ?? names[1];
-                var s = Alphanumerify(names[namedStyle->strid]);
+                string fontName = nameTable.GetValueOrDefault(16u) ?? nameTable[1];
+                var s = Alphanumerify(nameTable[namedStyle->strid]);
                 namedInstances.Add($@"{Alphanumerify(fontName)}-{s}", i);
             }
         }
