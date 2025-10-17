@@ -183,19 +183,14 @@ public class OutlineFont : IDisposable
         {
             Stream? s = Store.GetStream(AssetPath) ?? throw new FileNotFoundException();
             var handle = GCHandle.Alloc(s);
+
+            FT_StreamRec_* ftStream;
             FT_FaceRec_* face = null;
-            FT_StreamRec_* ftStream = null;
 
             // set up unmanaged object to allow use of stream from FreeType
             try
             {
-                var stream = (FTStream*)NativeMemory.AllocZeroed((nuint)sizeof(FTStream));
-                stream->size = new CULong((nuint)s.Length);
-                stream->descriptor.pointer = (nint)handle;
-                stream->read = &StreamReadCallback;
-                stream->close = &StreamCloseCallback;
-
-                ftStream = (FT_StreamRec_*)stream;
+                ftStream = (FT_StreamRec_*)NativeMemory.AllocZeroed((nuint)sizeof(FT_StreamRec_));
             }
             catch (Exception)
             {
@@ -203,6 +198,11 @@ public class OutlineFont : IDisposable
                 handle.Free();
                 throw;
             }
+
+            ftStream->size = new CULong((nuint)s.Length);
+            ftStream->descriptor.pointer = (void*)(nint)handle;
+            ftStream->read = (delegate* unmanaged<FT_StreamRec_*, CULong, byte*, CULong, CULong>)&StreamReadCallback;
+            ftStream->close = (delegate* unmanaged<FT_StreamRec_*, void>)&StreamCloseCallback;
 
             // open the font
             var openArgs = new FT_Open_Args_
@@ -267,11 +267,11 @@ public class OutlineFont : IDisposable
     /// Stream read and seek callback used by FreeType.
     /// </summary>
     [UnmanagedCallersOnly]
-    private static unsafe CULong StreamReadCallback(FTStream* ftStream, CULong offset, byte* buffer, CULong count)
+    private static unsafe CULong StreamReadCallback(FT_StreamRec_* ftStream, CULong offset, byte* buffer, CULong count)
     {
         try
         {
-            var s = (Stream)((GCHandle)ftStream->descriptor.pointer).Target!;
+            var s = (Stream)((GCHandle)(nint)ftStream->descriptor.pointer).Target!;
 
             s.Seek((long)offset.Value, SeekOrigin.Begin);
 
@@ -299,9 +299,9 @@ public class OutlineFont : IDisposable
     /// Stream close callback used by FreeType.
     /// </summary>
     [UnmanagedCallersOnly]
-    private static unsafe void StreamCloseCallback(FTStream* ftStream)
+    private static unsafe void StreamCloseCallback(FT_StreamRec_* ftStream)
     {
-        var handle = (GCHandle)ftStream->descriptor.pointer;
+        var handle = (GCHandle)(nint)ftStream->descriptor.pointer;
 
         var s = (Stream?)handle.Target;
 
@@ -428,7 +428,7 @@ public class OutlineFont : IDisposable
                 throw new InvalidDataException();
         }
     }
-    
+
     internal RawFontVariation? DecodeFontVariation(FontVariation? variation)
     {
         if (variation is null)
@@ -459,44 +459,6 @@ public class OutlineFont : IDisposable
             NamedInstance = rawNamedInstance,
             Axes = rawAxes,
         };
-    }
-
-    /// <summary>
-    /// An object used by FreeType for reading data.
-    /// </summary>
-    /// <remarks>
-    /// This is a part of the workaround for a bug in FreeTypeSharp. Remove
-    /// this struct and the workaround when the bug is fixed.
-    /// </remarks>
-    /// <seealso href="https://github.com/ryancheung/FreeTypeSharp/issues/31"/> 
-    [StructLayout(LayoutKind.Sequential)]
-    private unsafe struct FTStream
-    {
-        public nint _base;
-        public CULong size;
-        public CULong pos;
-        public FTStreamDesc descriptor;
-        public FTStreamDesc pathname;
-        public delegate* unmanaged<FTStream*, CULong, byte*, CULong, CULong> read;
-        public delegate* unmanaged<FTStream*, void> close;
-        public nint memory;
-        public nint cursor;
-        public nint limit;
-    };
-
-    /// <summary>
-    /// A union type used to store a handle to the input stream.
-    /// </summary>
-    /// <remarks>
-    /// This is a part of the workaround for a bug in FreeTypeSharp. Remove
-    /// this struct and the workaround when the bug is fixed.
-    /// </remarks>
-    /// <seealso href="https://github.com/ryancheung/FreeTypeSharp/issues/31"/> 
-    [StructLayout(LayoutKind.Explicit)]
-    private unsafe struct FTStreamDesc
-    {
-        [FieldOffset(0)] public CLong value;
-        [FieldOffset(0)] public nint pointer;
     }
 
     /// <summary>
