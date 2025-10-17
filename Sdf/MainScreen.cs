@@ -61,42 +61,42 @@ namespace Sdf
                             Text = TEST_STRING,
                             Anchor = Anchor.TopCentre,
                             Origin = Anchor.TopCentre,
-                            Font = FontUsage.Default.With(size: 40, weight: "Thin"),
+                            Font = AppFont.Exo2.With(size: 40, weight: "Thin"),
                         },
                         new SdfSpriteText
                         {
                             Text = TEST_STRING,
                             Anchor = Anchor.TopCentre,
                             Origin = Anchor.TopCentre,
-                            Font = FontUsage.Default.With(size: 40, weight: "Light"),
+                            Font = AppFont.Exo2.With(size: 40, weight: "Light"),
                         },
                         new SdfSpriteText
                         {
                             Text = TEST_STRING,
                             Anchor = Anchor.TopCentre,
                             Origin = Anchor.TopCentre,
-                            Font = FontUsage.Default.With(size: 40),
+                            Font = AppFont.Exo2.With(size: 40),
                         },
                         new SdfSpriteText
                         {
                             Text = TEST_STRING,
                             Anchor = Anchor.TopCentre,
                             Origin = Anchor.TopCentre,
-                            Font = FontUsage.Default.With(size: 40, weight: "Medium"),
+                            Font = AppFont.Exo2.With(size: 40, weight: "Medium"),
                         },
                         new SdfSpriteText
                         {
                             Text = TEST_STRING,
                             Anchor = Anchor.TopCentre,
                             Origin = Anchor.TopCentre,
-                            Font = FontUsage.Default.With(size: 40, weight: "Bold"),
+                            Font = AppFont.Exo2.With(size: 40, weight: "Bold"),
                         },
                         new SdfSpriteText
                         {
                             Text = TEST_STRING,
                             Anchor = Anchor.TopCentre,
                             Origin = Anchor.TopCentre,
-                            Font = FontUsage.Default.With(size: 40, weight: "Black"),
+                            Font = AppFont.Exo2.With(size: 40, weight: "Black"),
                         },
                         new SdfSpriteText
                         {
@@ -104,7 +104,7 @@ namespace Sdf
                             Anchor = Anchor.TopCentre,
                             Origin = Anchor.TopCentre,
                             Colour = Colour4.Black,
-                            Font = FontUsage.Default.With(size: 40),
+                            Font = AppFont.Exo2.With(size: 40),
                         },
                         new SdfSpriteText
                         {
@@ -112,28 +112,28 @@ namespace Sdf
                             Anchor = Anchor.TopCentre,
                             Origin = Anchor.TopCentre,
                             Colour = Colour4.White.Opacity(64),
-                            Font = FontUsage.Default.With(size: 40),
+                            Font = AppFont.Exo2.With(size: 40),
                         },
                         new SdfSpriteText
                         {
                             Text = TEST_STRING,
                             Anchor = Anchor.TopCentre,
                             Origin = Anchor.TopCentre,
-                            Font = FontUsage.Default.With(size: 16),
+                            Font = AppFont.Exo2.With(size: 16),
                         },
                         new SdfSpriteText
                         {
                             Text = TEST_STRING,
                             Anchor = Anchor.TopCentre,
                             Origin = Anchor.TopCentre,
-                            Font = FontUsage.Default.With(size: 16, italics: true),
+                            Font = AppFont.Exo2.With(size: 16, italics: true),
                         },
                         new SdfSpriteText
                         {
                             Text = TEST_STRING,
                             Anchor = Anchor.TopCentre,
                             Origin = Anchor.TopCentre,
-                            Font = FontUsage.Default.With(size: 16, weight: "Bold"),
+                            Font = AppFont.Exo2.With(size: 16, weight: "Bold"),
                         },
                     }
                 },

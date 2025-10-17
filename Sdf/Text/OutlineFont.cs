@@ -126,7 +126,7 @@ public class OutlineFont : IDisposable
     /// <param name="store">The resource store to use.</param>
     /// <param name="assetName">The font to open.</param>
     /// <param name="faceIndex">The index of the face to use.</param>
-    public OutlineFont(ResourceStore<byte[]> store, string assetName, int faceIndex = 0)
+    public OutlineFont(IResourceStore<byte[]> store, string assetName, int faceIndex = 0)
     {
         Store = new ResourceStore<byte[]>(store);
 
@@ -168,15 +168,15 @@ public class OutlineFont : IDisposable
     /// <exception cref="FreeTypeException">FreeType refused to open the font.</exception>
     public unsafe void Load()
     {
+        // check if the requested font is loading or loaded
+        if (completionSource.Task.IsCompleted || !faceLock.TryEnter())
+        {
+            completionSource.Task.Wait();
+            return;
+        }
+
         try
         {
-            // check if the requested font is loading or loaded
-            if (completionSource.Task.IsCompleted || !faceLock.TryEnter())
-            {
-                completionSource.Task.Wait();
-                return;
-            }
-
             Stream? s = Store.GetStream(AssetName) ?? throw new FileNotFoundException();
             var handle = GCHandle.Alloc(s);
             FT_FaceRec_* face = null;
@@ -524,8 +524,7 @@ public class OutlineFont : IDisposable
     /// The character's glyph index, on success.
     /// </para>
     /// <para>
-    /// If the font is not loaded, or if the does not contain a glyph for the
-    /// character in question, returns 0.
+    /// If the does not contain a glyph for the character in question, returns 0.
     /// </para>
     /// </returns>
     public async Task<uint> GetGlyphIndexAsync(int c)
@@ -708,7 +707,7 @@ public class OutlineFont : IDisposable
     {
         var face = await completionSource.Task.ConfigureAwait(false);
 
-        return await Task.Run(() => RasterizeGlyphInner(face, glyphIndex, variation), cancellationToken);
+        return await Task.Run(() => RasterizeGlyphInner(face, glyphIndex, variation), cancellationToken).ConfigureAwait(false);
     }
 
     private unsafe TextureUpload RasterizeGlyphInner(nint ptr, uint glyphIndex, RawFontVariation? variation)

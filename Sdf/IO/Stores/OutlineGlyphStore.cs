@@ -31,23 +31,14 @@ using SixLabors.ImageSharp;
 namespace Sdf.IO.Stores;
 
 /// <summary>
-/// A basic glyph store that will rasterize glyphs from outlines every character retrieval.
+/// A glyph store that rasterizes glyphs from outlines.
 /// </summary>
 /// <remarks>
 /// This class uses FreeType for glyph loading and rasterization.
 /// </remarks>
-public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDisposable
+public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>
 {
-    private OutlineFont Font => completionSource.Task.GetResultSafely();
-
-    private TaskCompletionSource<OutlineFont> completionSource = new();
-
-    protected readonly string AssetName;
-
-    /// <summary>
-    /// The resolution of the distance fields in pixels per em.
-    /// </summary>
-    public uint Resolution { get; init; } = 100;
+    protected OutlineFont Font { get; }
 
     /// <summary>
     /// The index of the face to use.
@@ -58,24 +49,21 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
 
     public FontVariation? Variation { get; }
 
-    protected readonly ResourceStore<byte[]> Store;
-
     public string FontName { get; }
 
     public float? Baseline => OutlineFont.BASELINE;
 
-    public OutlineGlyphStore(ResourceStore<byte[]> store, string assetName, string namedInstance)
-        : this(store, assetName, new FontVariation { NamedInstance = namedInstance })
+    public OutlineGlyphStore(OutlineFont font, string namedInstance)
+        : this(font, new FontVariation { NamedInstance = namedInstance })
     {
     }
 
-    public OutlineGlyphStore(ResourceStore<byte[]> store, string assetName, FontVariation? variation = null)
+    public OutlineGlyphStore(OutlineFont font, FontVariation? variation = null)
     {
-        Store = store;
-        AssetName = assetName;
+        Font = font;
         Variation = variation;
 
-        var fileName = assetName.Split('/').Last();
+        var fileName = font.AssetName.Split('/').Last();
         FontName = variation?.GenerateInstanceName(fileName) ?? fileName;
     }
 
@@ -92,32 +80,19 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
 
     protected virtual void Dispose(bool isDisposing)
     {
-        if (completionSource.Task.IsCompletedSuccessfully)
-        {
-            Font.Dispose();
-        }
     }
 
     public async Task LoadFontAsync()
     {
-        var font = new OutlineFont(Store, AssetName, FaceIndex)
-        {
-            Resolution = Resolution,
-        };
-
         try
         {
-            await font.LoadAsync();
-            RawVariation = font.DecodeFontVariation(Variation);
+            await Font.LoadAsync();
+            RawVariation = Font.DecodeFontVariation(Variation);
         }
         catch (Exception e)
         {
-            Logger.Error(e, $"Couldn't load font {FontName} from {AssetName}.");
+            Logger.Error(e, $"Couldn't load font {FontName} from {Font.AssetName}.");
             throw;
-        }
-        finally
-        {
-            completionSource.SetResult(font);
         }
     }
 
@@ -163,19 +138,15 @@ public class OutlineGlyphStore : IGlyphStore, IResourceStore<TextureUpload>, IDi
             return null!;
 
         char c = name.Last();
-        var font = await completionSource.Task.ConfigureAwait(false);
-        uint glyphIndex = await font.GetGlyphIndexAsync(c);
+        uint glyphIndex = await Font.GetGlyphIndexAsync(c);
 
-        return await font.RasterizeGlyphAsync(glyphIndex, RawVariation, cancellationToken);
+        return await Font.RasterizeGlyphAsync(glyphIndex, RawVariation, cancellationToken);
     }
 
     public Stream GetStream(string name) => throw new NotSupportedException();
 
     public IEnumerable<string> GetAvailableResources()
     {
-        if (!completionSource.Task.IsCompletedSuccessfully)
-            return Enumerable.Empty<string>();
-
         return Font.GetAvailableChars().Select(c => $@"{FontName}/{c}");
     }
 }

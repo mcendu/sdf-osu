@@ -27,7 +27,6 @@ using osu.Framework.IO.Stores;
 using osuTK;
 using Sdf.IO.Stores;
 using Sdf.Resources;
-using Sdf.Text;
 using System.Text;
 
 namespace Sdf
@@ -53,26 +52,30 @@ namespace Sdf
 
             Resources.AddStore(new DllResourceStore(typeof(SdfResources).Assembly));
 
-            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2", "Exo2-Regular"));
-            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2Italic", "Exo2-Italic"));
-            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc", "NotoSansCJKsc-Regular"));
+            var exo2 = new OutlineFontStore(Host.Renderer, Resources, @"Fonts/Exo2");
+            var exo2Italic = new OutlineFontStore(Host.Renderer, Resources, @"Fonts/Exo2Italic");
+            var notoSansCJKsc = new OutlineFontStore(Host.Renderer, Resources, @"Fonts/NotoSansCJKsc");
 
-            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2", "Exo2-Thin"));
-            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2Italic", "Exo2-ThinItalic"));
-            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2", "Exo2-Light"));
-            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2Italic", "Exo2-LightItalic"));
-            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2", "Exo2-Medium"));
-            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2Italic", "Exo2-MediumItalic"));
-            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2", "Exo2-Bold"));
-            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2Italic", "Exo2-BoldItalic"));
-            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2", "Exo2-Black"));
-            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/Exo2Italic", "Exo2-BlackItalic"));
+            exo2.AddInstance("Exo2-Thin");
+            exo2.AddInstance("Exo2-Light");
+            exo2.AddInstance("Exo2-Regular");
+            exo2.AddInstance("Exo2-Medium");
+            exo2.AddInstance("Exo2-Bold");
+            exo2.AddInstance("Exo2-Black");
 
-            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc", "NotoSansCJKsc-Thin"));
-            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc", "NotoSansCJKsc-Light"));
-            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc", "NotoSansCJKsc-Medium"));
-            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc", "NotoSansCJKsc-Bold"));
-            Fonts.AddTextureSource(new OutlineGlyphStore(Resources, @"Fonts/NotoSansCJKsc", "NotoSansCJKsc-Black"));
+            exo2Italic.AddInstance("Exo2-Italic");
+            exo2Italic.AddInstance("Exo2-BoldItalic");
+
+            notoSansCJKsc.AddInstance("NotoSansCJKsc-Thin");
+            notoSansCJKsc.AddInstance("NotoSansCJKsc-Light");
+            notoSansCJKsc.AddInstance("NotoSansCJKsc-Regular");
+            notoSansCJKsc.AddInstance("NotoSansCJKsc-Medium");
+            notoSansCJKsc.AddInstance("NotoSansCJKsc-Bold");
+            notoSansCJKsc.AddInstance("NotoSansCJKsc-Black");
+
+            Fonts.AddStore(exo2);
+            Fonts.AddStore(exo2Italic);
+            Fonts.AddStore(notoSansCJKsc);
         }
     }
 }
