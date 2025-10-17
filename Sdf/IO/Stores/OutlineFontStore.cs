@@ -30,7 +30,7 @@ public class OutlineFontStore : FontStore
 {
     private OutlineFont font;
 
-    public OutlineFontStore(IRenderer renderer, IResourceStore<byte[]> store, string assetName, float scaleAdjust = 100)
+    public OutlineFontStore(IRenderer renderer, IResourceStore<byte[]> store, string assetName, float scaleAdjust = 64)
         : base(renderer, null, scaleAdjust)
     {
         font = new OutlineFont(store, assetName, 0)
