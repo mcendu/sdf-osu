@@ -32,9 +32,4 @@ namespace Sdf.Graphics;
 /// </summary>
 public partial class SdfSpriteText : SpriteText
 {
-    [BackgroundDependencyLoader]
-    private void load(ShaderManager shaders)
-    {
-        TextureShader = shaders.Load(VertexShaderDescriptor.TEXTURE_2, "Sdf");
-    }
 }

@@ -648,8 +648,8 @@ public class OutlineFont : IDisposable
         }
 
         // FreeType outputs metric data in 26.6 fixed point. Convert to floating point accordingly.
-        float xOffset = (horiBearingX / 64.0f) - SDF_SPREAD;
-        float yOffset = Baseline - (horiBearingY / 64.0f) - SDF_SPREAD;
+        float xOffset = horiBearingX / 64.0f;
+        float yOffset = Baseline - (horiBearingY / 64.0f);
         float advance = horiAdvance / 64.0f;
 
         // The noncharacter indicates that the original character is not available.
@@ -741,15 +741,11 @@ public class OutlineFont : IDisposable
 
             if (error != 0) throw new FreeTypeException(error);
 
-            error = FT_Render_Glyph(face->glyph, FT_RENDER_MODE_SDF);
-
-            if (error != 0) throw new FreeTypeException(error);
-
             // copy to TextureUpload
             var ftBitmap = &face->glyph->bitmap;
             int width = ftBitmap->width != 0 ? (int)ftBitmap->width : 1;
             int height = ftBitmap->rows != 0 ? (int)ftBitmap->rows : 1;
-            image = new Image<Rgba32>(width, height, new Rgba32(0, 0, 0, byte.MaxValue));
+            image = new Image<Rgba32>(width, height, new Rgba32(byte.MaxValue, byte.MaxValue, byte.MaxValue, 0));
 
             for (int y = 0; y < ftBitmap->rows; ++y)
             {
@@ -758,7 +754,7 @@ public class OutlineFont : IDisposable
 
                 for (int x = 0; x < ftBitmap->width; ++x)
                 {
-                    dstRow[x] = new Rgba32(srcRow[x], srcRow[x], srcRow[x], byte.MaxValue);
+                    dstRow[x] = new Rgba32(byte.MaxValue, byte.MaxValue, byte.MaxValue, srcRow[x]);
                 }
             }
         }
