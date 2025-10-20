@@ -59,19 +59,9 @@ public class FontVariation
     /// only <see cref="Axes"/> is used. 
     /// </para>
     /// <para>
-    /// The name generation is based on Adobe TechNote #5902, 'Generating
-    /// PostScript Names for Fonts Using OpenType Font Variations'. Notable
-    /// differences are:
+    /// The name generation follows Adobe TechNote #5902, 'Generating
+    /// PostScript Names for Fonts Using OpenType Font Variations'.
     /// </para>
-    /// <list type="bullet">
-    /// <item>
-    /// <description>
-    /// When the instance is an arbitrary instance, an axis value descriptor
-    /// starts with <c>-</c> instead of <c>_</c> to stay compatible with
-    /// osu!framework semantics.
-    /// </description>
-    /// </item>
-    /// </list>
     /// <seealso href="https://download.macromedia.com/pub/developer/opentype/tech-notes/5902.AdobePSNameGeneration.html"/>
     /// </remarks>
     public string GenerateInstanceName(string baseName)
@@ -98,15 +88,16 @@ public class FontVariation
                 // compute ASCII representation of parameter
                 double effectiveValue = parameter.value / 65536.0;
 
-                instanceName.Append($@"-{effectiveValue:0.#####}{axis}");
+                instanceName.Append($@"_{effectiveValue:0.#####}{axis}");
+            }
 
-                if (instanceName.Length > 128)
-                {
-                    // The last resort string is constructed from a SHA-256 hash
-                    // if the string form of the parameters gets too long.
-                    ReadOnlySpan<byte> hashedData = MemoryMarshal.AsBytes(CollectionsMarshal.AsSpan(hashedAxes));
-                    return $@"{baseName}-{Convert.ToHexStringLower(SHA256.HashData(hashedData))}";
-                }
+            if (instanceName.Length > 128)
+            {
+                // The last resort string is constructed from a SHA-256 hash
+                // of the hashed parameters if the string form of the parameters
+                // gets too long.
+                ReadOnlySpan<byte> hashedData = MemoryMarshal.AsBytes(CollectionsMarshal.AsSpan(hashedAxes));
+                return $@"{baseName}-{Convert.ToHexStringLower(SHA256.HashData(hashedData))}";
             }
 
             return instanceName.ToString();
