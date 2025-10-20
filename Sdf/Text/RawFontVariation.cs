@@ -52,5 +52,5 @@ public class RawFontVariation
     /// only <see cref="Axes"/> is used.
     /// </para>
     /// </remarks>
-    public CLong[]? Axes { get; init; }
+    public ReadOnlyMemory<CLong> Axes { get; init; }
 }

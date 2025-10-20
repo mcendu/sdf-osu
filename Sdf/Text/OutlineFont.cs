@@ -435,7 +435,7 @@ public class OutlineFont : IDisposable
             return null;
 
         uint rawNamedInstance = 0;
-        CLong[]? rawAxes = null;
+        CLong[] rawAxes = Array.Empty<CLong>();
 
         if (variation.Axes is not null)
         {
@@ -443,6 +443,7 @@ public class OutlineFont : IDisposable
 
             foreach (var (axis, value) in variation.Axes)
             {
+                // Non-existent axes for this font should have no effect.
                 if (axes.TryGetValue(axis, out uint index))
                     rawAxes[index] = new CLong((nint)Math.Round(value * 65536));
             }
@@ -554,11 +555,11 @@ public class OutlineFont : IDisposable
                 if (error != 0) throw new FreeTypeException(error);
             }
         }
-        else if (variation.Axes is not null)
+        else if (!variation.Axes.IsEmpty)
         {
             FT_Error error;
 
-            fixed (CLong* p = variation.Axes)
+            fixed (CLong* p = variation.Axes.Span)
             {
                 error = FT_Set_Var_Design_Coordinates(face, (uint)variation.Axes.Length, p);
             }
