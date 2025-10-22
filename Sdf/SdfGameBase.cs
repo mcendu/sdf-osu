@@ -52,8 +52,8 @@ namespace Sdf
 
             Resources.AddStore(new DllResourceStore(typeof(SdfResources).Assembly));
 
-            var exo2 = new OutlineFontStore(Host.Renderer, Resources, @"Fonts/Exo2");
-            var exo2Italic = new OutlineFontStore(Host.Renderer, Resources, @"Fonts/Exo2Italic");
+            var exo2 = new OutlineFontStore(Host.Renderer, Resources, @"Fonts/Exo2", 72);
+            var exo2Italic = new OutlineFontStore(Host.Renderer, Resources, @"Fonts/Exo2Italic", 72);
             var notoSansCJKsc = new OutlineFontStore(Host.Renderer, Resources, @"Fonts/NotoSansCJKsc");
 
             exo2.AddInstance("Exo2-Regular");

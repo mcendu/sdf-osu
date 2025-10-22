@@ -52,7 +52,7 @@ public class OutlineFont : IDisposable
     /// This is equal to the default spread value defined by FreeType.
     /// </remarks>
     /// <seealso href="https://freetype.org/freetype2/docs/reference/ft2-properties.html#spread"/>
-    private const int SDF_SPREAD = 8;
+    internal const int SDF_SPREAD = 8;
 
     /// <summary>
     /// Hardcoded relative baseline position.

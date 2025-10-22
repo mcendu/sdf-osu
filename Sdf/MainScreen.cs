@@ -45,7 +45,7 @@ namespace Sdf
                     Colour = Colour4.Violet,
                     RelativeSizeAxes = Axes.Both,
                 },
-                new FillFlowContainer<SpriteText>
+                new FillFlowContainer<SdfSpriteText>
                 {
                     RelativeSizeAxes = Axes.Both,
                     Direction = FillDirection.Vertical,
@@ -54,51 +54,57 @@ namespace Sdf
                         Vertical = 10,
                     },
                     Spacing = new Vector2(0, 10),
-                    Children = new []
+                    Children = new SdfSpriteText[]
                     {
-                        new SdfSpriteText
+                        new()
                         {
                             Text = TEST_STRING,
                             Anchor = Anchor.TopCentre,
                             Origin = Anchor.TopCentre,
                             Font = AppFont.Exo2.With(size: 40, weight: "Thin"),
+                            Shadow = true,
                         },
-                        new SdfSpriteText
+                        new()
                         {
                             Text = TEST_STRING,
                             Anchor = Anchor.TopCentre,
                             Origin = Anchor.TopCentre,
                             Font = AppFont.Exo2.With(size: 40, weight: "Light"),
+                            Shadow = true,
                         },
-                        new SdfSpriteText
+                        new()
                         {
                             Text = TEST_STRING,
                             Anchor = Anchor.TopCentre,
                             Origin = Anchor.TopCentre,
                             Font = AppFont.Exo2.With(size: 40),
+                            Shadow = true,
                         },
-                        new SdfSpriteText
+                        new()
                         {
                             Text = TEST_STRING,
                             Anchor = Anchor.TopCentre,
                             Origin = Anchor.TopCentre,
                             Font = AppFont.Exo2.With(size: 40, weight: "Medium"),
+                            Shadow = true,
                         },
-                        new SdfSpriteText
+                        new()
                         {
                             Text = TEST_STRING,
                             Anchor = Anchor.TopCentre,
                             Origin = Anchor.TopCentre,
                             Font = AppFont.Exo2.With(size: 40, weight: "Bold"),
+                            Shadow = true,
                         },
-                        new SdfSpriteText
+                        new()
                         {
                             Text = TEST_STRING,
                             Anchor = Anchor.TopCentre,
                             Origin = Anchor.TopCentre,
                             Font = AppFont.Exo2.With(size: 40, weight: "Black"),
+                            Shadow = true,
                         },
-                        new SdfSpriteText
+                        new()
                         {
                             Text = TEST_STRING,
                             Anchor = Anchor.TopCentre,
@@ -106,7 +112,7 @@ namespace Sdf
                             Colour = Colour4.Black,
                             Font = AppFont.Exo2.With(size: 40),
                         },
-                        new SdfSpriteText
+                        new()
                         {
                             Text = TEST_STRING,
                             Anchor = Anchor.TopCentre,
@@ -114,21 +120,40 @@ namespace Sdf
                             Colour = Colour4.White.Opacity(64),
                             Font = AppFont.Exo2.With(size: 40),
                         },
-                        new SdfSpriteText
+                        new()
+                        {
+                            Text = TEST_STRING,
+                            Anchor = Anchor.TopCentre,
+                            Origin = Anchor.TopCentre,
+                            Font = AppFont.Exo2.With(size: 40),
+                            OutlineColour = Colour4.Black,
+                            OutlineWidth = 2,
+                        },
+                        new()
+                        {
+                            Text = TEST_STRING,
+                            Anchor = Anchor.TopCentre,
+                            Origin = Anchor.TopCentre,
+                            Font = AppFont.Exo2.With(size: 40, weight: "Bold"),
+                            OutlineColour = Colour4.Black,
+                            OutlineWidth = 2,
+                            Shadow = true,
+                        },
+                        new()
                         {
                             Text = TEST_STRING,
                             Anchor = Anchor.TopCentre,
                             Origin = Anchor.TopCentre,
                             Font = AppFont.Exo2.With(size: 16),
                         },
-                        new SdfSpriteText
+                        new()
                         {
                             Text = TEST_STRING,
                             Anchor = Anchor.TopCentre,
                             Origin = Anchor.TopCentre,
                             Font = AppFont.Exo2.With(size: 16, italics: true),
                         },
-                        new SdfSpriteText
+                        new()
                         {
                             Text = TEST_STRING,
                             Anchor = Anchor.TopCentre,

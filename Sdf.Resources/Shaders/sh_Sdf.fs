@@ -23,8 +23,9 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 precision mediump float;
 precision mediump int;
 
-layout(location = 1) in lowp vec4 v_Colour;
-layout(location = 2) in mediump vec2 v_TexCoord;
+layout(location = 1) in mediump vec2 v_TexCoord;
+layout(location = 2) in lowp vec4 v_Colour;
+layout(location = 3) in lowp float v_Threshold;
 
 layout(location = 0) out lowp vec4 o_Colour;
 
@@ -44,7 +45,7 @@ void main(void)
     lowp float filterSize = abs(filterVec.x) + abs(filterVec.y);
 
     // add 0.5 * filterSize to make things legible at smaller sizes
-    lowp float coverage = (dist - 0.5 + 0.5 * filterSize) / filterSize;
+    lowp float coverage = (dist - v_Threshold + 0.5 * filterSize) / filterSize;
 
     o_Colour = v_Colour * vec4(vec3(1.0), clamp(coverage, 0.0, 1.0));
 }
