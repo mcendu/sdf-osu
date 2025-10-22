@@ -344,7 +344,10 @@ public class OutlineFont : IDisposable
 
             if (error != 0) throw new FreeTypeException(error);
 
-            nameTable[nameEntry.name_id] = DecodeNameEntry(&nameEntry);
+            string? name = DecodeNameEntry(&nameEntry);
+
+            if (name is not null)
+                nameTable[nameEntry.name_id] = name;
         }
 
         string fontName = nameTable.GetValueOrDefault(16u) ?? nameTable[1];
@@ -399,7 +402,7 @@ public class OutlineFont : IDisposable
     /// The name entry encoding cannot be recognized.
     /// </exception>
     /// <seealso href="https://learn.microsoft.com/en-us/typography/opentype/spec/name"/> 
-    private static unsafe string DecodeNameEntry(FT_SfntName_* nameEntry)
+    private static unsafe string? DecodeNameEntry(FT_SfntName_* nameEntry)
     {
         var span = new ReadOnlySpan<byte>(nameEntry->@string, (int)nameEntry->string_len);
 
@@ -407,10 +410,6 @@ public class OutlineFont : IDisposable
         {
             case TT_PLATFORM_APPLE_UNICODE:
                 return Encoding.BigEndianUnicode.GetString(span);
-            case TT_PLATFORM_MACINTOSH:
-                // Bail out and assume everything is Mac OS Roman.
-                // TODO: Properly support other encodings.
-                return Encoding.GetEncoding("macintosh").GetString(span);
             case TT_PLATFORM_MICROSOFT:
                 switch (nameEntry->encoding_id)
                 {
@@ -424,8 +423,8 @@ public class OutlineFont : IDisposable
                         return Encoding.BigEndianUnicode.GetString(span);
                 }
             default:
-                // The rest only applies to charmaps, so panic.
-                throw new InvalidDataException();
+                // 'name' tables for Classic Mac OS are not supported.
+                return null;
         }
     }
 
