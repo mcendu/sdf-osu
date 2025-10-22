@@ -334,7 +334,7 @@ public class OutlineFont : IDisposable
         }
 
         // load SFNT names
-        Dictionary<uint, string> nameTable = new();
+        Dictionary<uint, string> nameRecords = new();
         FT_SfntName_ nameEntry = new();
         uint nameCount = FT_Get_Sfnt_Name_Count(face);
 
@@ -347,10 +347,10 @@ public class OutlineFont : IDisposable
             string? name = DecodeNameEntry(&nameEntry);
 
             if (name is not null)
-                nameTable[nameEntry.name_id] = name;
+                nameRecords[nameEntry.name_id] = name;
         }
 
-        string fontName = nameTable.GetValueOrDefault(16u) ?? nameTable[1];
+        string fontName = nameRecords.GetValueOrDefault(16u) ?? nameRecords[1];
 
         // get names for named styles
         for (uint i = 0; i < amaster->num_namedstyles; ++i)
@@ -360,13 +360,13 @@ public class OutlineFont : IDisposable
             if (namedStyle->psid != 0xffff)
             {
                 // try to get the instance's PostScript name first
-                namedInstances.Add(nameTable[namedStyle->psid], i);
+                namedInstances.Add(nameRecords[namedStyle->psid], i);
             }
             else
             {
                 // failing that, generate one according to
                 // <https://download.macromedia.com/pub/developer/opentype/tech-notes/5902.AdobePSNameGeneration.html>.
-                var s = Alphanumerify(nameTable[namedStyle->strid]);
+                var s = Alphanumerify(nameRecords[namedStyle->strid]);
                 namedInstances.Add($@"{Alphanumerify(fontName)}-{s}", i);
             }
         }
@@ -409,21 +409,32 @@ public class OutlineFont : IDisposable
         switch (nameEntry->platform_id)
         {
             case TT_PLATFORM_APPLE_UNICODE:
+                // > Strings for the Unicode platform must be encoded
+                // > in UTF-16BE.
                 return Encoding.BigEndianUnicode.GetString(span);
             case TT_PLATFORM_MICROSOFT:
+                // > If a font has records for encoding IDs 3, 4 or 5,
+                // > the corresponding string data should be encoded
+                // > using code pages 936, 950 and 949, respectively.
+                // > Otherwise, all string data for platform 3 must be
+                // > encoded in UTF-16BE.
+                //
+                // The special case where a `name` record with a special
+                // encoding ID (3, 4, 5) is encoded in UTF-16BE is not
+                // supported.
                 switch (nameEntry->encoding_id)
                 {
-                    case TT_MS_ID_PRC:
+                    case 3: /* GBK */
                         return Encoding.GetEncoding(936).GetString(span);
-                    case TT_MS_ID_BIG_5:
+                    case 4: /* Big5 */
                         return Encoding.GetEncoding(950).GetString(span);
-                    case TT_MS_ID_WANSUNG:
+                    case 5: /* Wansung */
                         return Encoding.GetEncoding(949).GetString(span);
                     default:
                         return Encoding.BigEndianUnicode.GetString(span);
                 }
             default:
-                // 'name' tables for Classic Mac OS are not supported.
+                // `name` records for Classic Mac OS are not supported.
                 return null;
         }
     }
