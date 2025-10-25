@@ -21,8 +21,6 @@ CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
 TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using osu.Framework.Graphics;
@@ -31,7 +29,6 @@ using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Rendering;
 using osu.Framework.Graphics.Rendering.Vertices;
 using osu.Framework.Graphics.Shaders;
-using osu.Framework.Graphics.Shaders.Types;
 using osu.Framework.Graphics.Textures;
 using osuTK;
 using osuTK.Graphics;
@@ -82,7 +79,7 @@ namespace Sdf.Graphics
             {
                 base.BindUniformResources(shader, renderer);
 
-                vertexBatch ??= renderer.CreateQuadBatch<SdfVertex>(1, 3);
+                vertexBatch ??= renderer.CreateQuadBatch<SdfVertex>(3072, 1);
             }
 
             private Action<TexturedVertex2D> vertexAction(float threshold) => (vertex) =>
