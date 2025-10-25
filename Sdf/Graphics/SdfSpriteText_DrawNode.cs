@@ -30,6 +30,7 @@ using osu.Framework.Graphics.Rendering;
 using osu.Framework.Graphics.Rendering.Vertices;
 using osu.Framework.Graphics.Shaders;
 using osu.Framework.Graphics.Textures;
+using osu.Framework.Utils;
 using osuTK;
 using osuTK.Graphics;
 using osuTK.Graphics.ES30;
@@ -109,9 +110,9 @@ namespace Sdf.Graphics
 
                 BindTextureShader(renderer);
 
-                for (int i = 0; i < parts.Count; i++)
+                if (shadow)
                 {
-                    if (shadow)
+                    for (int i = 0; i < parts.Count; i++)
                     {
                         var shadowQuad = parts[i].DrawQuad;
 
@@ -127,11 +128,14 @@ namespace Sdf.Graphics
                     }
                 }
 
-                for (int i = 0; i < parts.Count; i++)
+                if (!Precision.AlmostEquals(outlineThreshold, 0.5f))
                 {
-                    renderer.DrawQuad(parts[i].Texture, parts[i].DrawQuad, outlineColour,
-                        vertexAction: vertexAction(outlineThreshold),
-                        inflationPercentage: parts[i].InflationPercentage);
+                    for (int i = 0; i < parts.Count; i++)
+                    {
+                        renderer.DrawQuad(parts[i].Texture, parts[i].DrawQuad, outlineColour,
+                            vertexAction: vertexAction(outlineThreshold),
+                            inflationPercentage: parts[i].InflationPercentage);
+                    }
                 }
 
                 for (int i = 0; i < parts.Count; i++)
